@@ -65,11 +65,10 @@ jobs:
       # the published package), so a regression in a check fails our own CI. This
       # runs a broader set than a consumer's default-on set — every check that
       # applies to this repo, configured via .repo-hygiene.yml — for maximum
-      # regression coverage. okf / okf-index are omitted because this repo is a
-      # package, not an OKF docs bundle (its docs carry no OKF frontmatter and
-      # there is no docs/index.md), so those checks do not apply here.
+      # regression coverage. docs/ is an OKF bundle (see docs/okf-format.md), so
+      # okf / okf-index run here too.
       - run: pnpm run build
       - run: >-
           node dist/bin/repo-hygiene.js
-          conflict-markers action-pins package-pins docs-links md-pairing file-caps
+          conflict-markers action-pins package-pins docs-links md-pairing okf okf-index file-caps
           --check --config .repo-hygiene.yml
