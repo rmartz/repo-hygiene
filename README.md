@@ -44,11 +44,17 @@ Both files are seeded once by [`@rmartz/bootstrap`](https://github.com/rmartz/ai
 `@rmartz/repo-hygiene` package on GitHub Packages is readable with the built-in
 `GITHUB_TOKEN`, so no consumer PAT is required.
 
+> For the full walkthrough — per-check configuration, the `file-caps` baseline,
+> and how to verify your setup — see the
+> [consumer setup & configuration guide](docs/consuming.md).
+
 ### Choosing checks
 
-The reusable workflow runs a universally-safe default set (`conflict-markers`,
-`action-pins`). Opt into repo-specific checks — and point at a config — via
-inputs:
+**Omit the `checks` input** and the workflow runs the registry's default-on set
+(`conflict-markers`, `action-pins`) — and a newly-added default-on check
+auto-joins on your next Dependabot bump with no edit here. To opt into
+repo-specific checks, name them explicitly (this becomes the _exact_ run list, so
+include the defaults you still want) and point at a config:
 
 ```yaml
 uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z
@@ -57,7 +63,8 @@ with:
   config: .repo-hygiene.yml
 ```
 
-Per-check configuration lives in the consuming repo's `.repo-hygiene.yml`.
+Per-check configuration lives in the consuming repo's `.repo-hygiene.yml` — see
+the [consumer guide](docs/consuming.md) for the full reference.
 
 ## Checks
 
