@@ -1,14 +1,19 @@
 ---
 type: Library
 title: The okf check
-description: Validates Open Knowledge Format frontmatter (type vocabulary, title, description, resource existence) on docs pages; opt-in.
+description: Validates Open Knowledge Format frontmatter (type vocabulary, title, description, resource existence) on docs pages; default-on at warn severity.
 resource: src/checks/okf.ts
 tags: [hygiene, ci, checks, docs, okf]
 ---
 
 # `okf`
 
-**Default:** opt-in · **Config:** `types`, `roots`, `exempt`, `resourceExemptTypes`
+**Default:** on (warn) · **Config:** `types`, `roots`, `exempt`, `resourceExemptTypes` · **Opt out:** `enabled: false`
+
+Default-on at `warn` severity: it surfaces missing/invalid frontmatter on every
+consumer without failing a repo that has `docs/` but has not adopted OKF. Enforce
+it with `severity: error` once your docs conform, or turn it off with
+`enabled: false`.
 
 Open Knowledge Format frontmatter conformance for docs pages. Every docs page
 except the configured reserved files must carry a valid `type` from the repo's

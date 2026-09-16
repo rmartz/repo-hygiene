@@ -69,21 +69,23 @@ describe('registry defaultNames', () => {
     expect(registry.defaultNames()).toEqual(['b', 'c']);
   });
 
-  it('the built-in default-on set is exactly conflict-markers and action-pins', () => {
-    expect(createRegistry().defaultNames()).toEqual(['conflict-markers', 'action-pins']);
-  });
-
-  it('the opinionated checks are opt-in (not default-on)', () => {
-    const defaults = createRegistry().defaultNames();
-    for (const name of [
-      'package-pins',
-      'docs-links',
-      'md-pairing',
+  it('the built-in default-on set is every check except the opt-in package-pins', () => {
+    expect(createRegistry().defaultNames()).toEqual([
+      'conflict-markers',
       'okf',
       'okf-index',
+      'docs-links',
+      'action-pins',
+      'md-pairing',
       'file-caps',
-    ]) {
-      expect(defaults).not.toContain(name);
+    ]);
+  });
+
+  it('package-pins is the only opt-in check', () => {
+    const defaults = createRegistry().defaultNames();
+    expect(defaults).not.toContain('package-pins');
+    for (const name of ['docs-links', 'md-pairing', 'okf', 'okf-index', 'file-caps']) {
+      expect(defaults).toContain(name);
     }
   });
 });
@@ -128,6 +130,41 @@ describe('runHygiene', () => {
     const registry = createRegistry([fakeCheck('a', [warn('a')])]);
     const strict = { checks: { a: { severity: 'error' as const } } };
     const result = await runHygiene(registry, { mode: '--check', config: strict });
+    expect(result.findings[0]?.severity).toBe('error');
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('skips a check disabled via config (enabled: false)', async () => {
+    const registry = createRegistry([fakeCheck('a', [err('a')]), fakeCheck('b', [err('b')])]);
+    const cfg = { checks: { a: { enabled: false } } };
+    const result = await runHygiene(registry, { mode: '--check', config: cfg });
+    expect(result.findings.map((f) => f.check)).toEqual(['b']);
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('enabled: false wins even when the check is named explicitly', async () => {
+    const registry = createRegistry([fakeCheck('a', [err('a')])]);
+    const cfg = { checks: { a: { enabled: false } } };
+    const result = await runHygiene(registry, { mode: '--check', only: ['a'], config: cfg });
+    expect(result.findings).toEqual([]);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("applies a check's defaultSeverity when the repo sets no override → exit 0", async () => {
+    const registry = createRegistry([
+      { ...fakeCheck('a', [err('a')]), defaultSeverity: 'warn' as const },
+    ]);
+    const result = await runHygiene(registry, { mode: '--check', config });
+    expect(result.findings[0]?.severity).toBe('warn');
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('a repo severity override wins over defaultSeverity → exit 1', async () => {
+    const registry = createRegistry([
+      { ...fakeCheck('a', [err('a')]), defaultSeverity: 'warn' as const },
+    ]);
+    const cfg = { checks: { a: { severity: 'error' as const } } };
+    const result = await runHygiene(registry, { mode: '--check', config: cfg });
     expect(result.findings[0]?.severity).toBe('error');
     expect(result.exitCode).toBe(1);
   });

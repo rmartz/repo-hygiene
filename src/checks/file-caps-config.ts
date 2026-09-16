@@ -87,6 +87,31 @@ function asLineCount(value: unknown, glob: string): number {
   return value;
 }
 
+/**
+ * Warn-only fleet defaults, applied beneath a repo's own `overrides` (which match
+ * first). Advisory by design — no `error` tier — so `file-caps` can be default-on
+ * without hard-failing a baseline-less consumer on arrival. A repo tightens any
+ * glob by adding its own entry (with an `error` tier), or turns the check off
+ * entirely with `enabled: false`. Values are intentionally generous; tune to fleet
+ * norms.
+ */
+export const DEFAULT_OVERRIDES: OverrideEntry[] = [
+  {
+    glob: '**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs}',
+    lines: { warn: 600 },
+    bytes: { warn: 64 * 1024 },
+  },
+  { glob: '**/*.md', lines: { warn: 1000 }, bytes: { warn: 128 * 1024 } },
+];
+
+/**
+ * The effective cap list: a repo's parsed `overrides` first (they match ahead of
+ * the shared defaults, per first-match-wins), then {@link DEFAULT_OVERRIDES}.
+ */
+export function resolveFileCapsOverrides(settings: CheckConfig): OverrideEntry[] {
+  return [...parseFileCapsConfig(settings), ...DEFAULT_OVERRIDES];
+}
+
 /** Parse and validate the `overrides` list from a `file-caps` config section. */
 export function parseFileCapsConfig(settings: CheckConfig): OverrideEntry[] {
   const raw = settings.overrides;

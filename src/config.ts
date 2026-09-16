@@ -35,6 +35,12 @@ function validateCheckConfig(name: string, value: unknown): CheckConfig {
         `${JSON.stringify(value.severity)} (expected "warn" or "error")`,
     );
   }
+  if (value.enabled !== undefined && typeof value.enabled !== 'boolean') {
+    throw new Error(
+      `${CONFIG_FILENAME}: check "${name}" has invalid enabled ` +
+        `${JSON.stringify(value.enabled)} (expected true or false)`,
+    );
+  }
   return value as CheckConfig;
 }
 

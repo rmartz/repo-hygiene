@@ -110,6 +110,11 @@ export const mdPairingCheck: Check = {
   name: NAME,
   description:
     'CLAUDE.md / AGENTS.md must be paired regular files in every directory that has one; optionally each CLAUDE.md must be a bare @AGENTS.md wrapper.',
+  // Default-on but warn by default: many repos carry a CLAUDE.md without an
+  // AGENTS.md, so a hard failure on arrival would be wrong; the warning nudges
+  // toward pairing and a repo enforces it with `severity: error`.
+  defaultOn: true,
+  defaultSeverity: 'warn',
   async run(ctx) {
     const wrapper = resolveWrapper(ctx.settings);
     const modes = await trackedFileModes({ cwd: ctx.cwd });

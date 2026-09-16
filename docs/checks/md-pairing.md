@@ -1,14 +1,18 @@
 ---
 type: Library
 title: The md-pairing check
-description: Enforces that CLAUDE.md and AGENTS.md travel together as paired regular files, optionally with a bare-wrapper CLAUDE.md; opt-in.
+description: Enforces that CLAUDE.md and AGENTS.md travel together as paired regular files, optionally with a bare-wrapper CLAUDE.md; default-on at warn severity.
 resource: src/checks/md-pairing.ts
 tags: [hygiene, ci, checks, agents]
 ---
 
 # `md-pairing`
 
-**Default:** opt-in · **Config:** `wrapper`
+**Default:** on (warn) · **Config:** `wrapper` · **Opt out:** `enabled: false`
+
+Default-on at `warn` severity: many repos carry a `CLAUDE.md` without an
+`AGENTS.md`, so it nudges toward pairing without failing them on arrival. Enforce
+with `severity: error`, or turn it off with `enabled: false`.
 
 The `CLAUDE.md` / `AGENTS.md` pairing invariant. The two agent-directive files
 must travel together: a directory that carries one must carry the other, and each

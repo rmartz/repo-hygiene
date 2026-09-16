@@ -3,8 +3,8 @@
 # set) overrides that check's findings. See docs/overview.md.
 #
 # The CI Self-hygiene job dogfoods every check that applies to this repo against
-# our own tree: conflict-markers, action-pins, package-pins, docs-links,
-# md-pairing (all config-free here), plus okf / okf-index / file-caps configured
+# our own tree: conflict-markers, action-pins, package-pins, docs-links
+# (config-free here), plus okf / okf-index / md-pairing / file-caps configured
 # below. docs/ is an OKF bundle — see docs/okf-format.md.
 checks:
   # Intra-repo Markdown link integrity for docs pages.
@@ -15,11 +15,18 @@ checks:
   # curated type vocabulary; `Reference` (concept/guide pages like okf-format.md)
   # joins the defaults and is resource-exempt alongside `Design`.
   okf:
+    # okf / okf-index / md-pairing ship warn-by-default fleet-wide (see
+    # docs/distribution-contract.md); this repo enforces them strictly at error.
+    severity: error
     types: [Skill, Script, Library, Design, Reference]
     resourceExemptTypes: [Design, Reference]
     # index.md pages carry no frontmatter (the okf-index rule), so each
     # directory's index.md is exempt from okf's frontmatter requirement.
     exempt: [docs/index.md, docs/checks/index.md]
+  okf-index:
+    severity: error
+  md-pairing:
+    severity: error
   # Per-glob size caps, dogfooded against our own source and docs. Caps sit
   # comfortably above current sizes so the check exercises its full evaluate path
   # without flagging; tighten them if a file starts to sprawl.
