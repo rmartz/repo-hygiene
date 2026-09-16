@@ -31,19 +31,23 @@ task:
 ## Repository conformance
 
 This repo is held to the shared
-[repository checklist](https://github.com/rmartz/ai/blob/main/docs/guidance/repository-checklist.md).
-Apply the golden state with the bootstrap tooling rather than by hand — it is
-idempotent:
+[repository checklist](https://github.com/rmartz/ai/blob/main/docs/guidance/repository-checklist.md),
+and it **self-manages** its own config: fix conformance gaps directly here, in a
+PR. Bootstrap (`ai-ensure-*`) is a one-time new-repo **starter**, not an ongoing
+manager — do not defer a fix to a bootstrap re-run, and do not treat a `.github/`
+file as off-limits just because bootstrap once seeded it.
 
-- `ai-ensure-project-config` — golden ignore files + managed workflow files.
-- `ai-ensure-labels` — the standard label roster.
-- `ai-verify-squash-setting` — confirms squash-merge uses the PR title (required
-  for release-please; see the workflow section).
+- **Updates arrive the self-updating way:** the reusable-workflow caller
+  (`repo-hygiene.yml`) is pinned and bumped by Dependabot; the CI checks
+  (incl. PR-title lint + the `commit-convention` tripwire), labels, hardened
+  `dependabot.yml`, and squash-merge setting are already in place and owned here.
+- `ai-ensure-labels` / `ai-verify-squash-setting` are still useful one-shot
+  helpers to (re)seed the label roster or confirm the squash setting, but this
+  repo owns its `.github/` config going forward.
 
-The checklist is the superset; bootstrap automates part of it. When a conformance
-gap is a bootstrap-owned file (e.g. `commit-convention.yml`, the hardened
-`dependabot.yml`), fix it in `@rmartz/bootstrap` (rmartz/ai-tools), not by editing
-the seeded file here.
+Follow the checklist directly — it is the source of truth for what "conformant"
+means. (Bootstrap still seeds good starting defaults for _new_ repos; that is a
+separate concern from managing this one.)
 
 ## Common commands
 

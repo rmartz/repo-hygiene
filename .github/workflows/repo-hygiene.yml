@@ -1,32 +1,27 @@
-# >>> ai-tools managed (ensure-project-config) — do not edit by hand >>>
-# Source of truth: @rmartz/bootstrap golden workflow files. Re-run the
-# /bootstrap skill (ai-ensure-project-config) to re-sync; local edits are lost.
+name: Repo Hygiene
 
-name: repo-hygiene
+# Dogfood: repo-hygiene is its own first consumer, using the exact caller shape
+# every consuming repo uses. It pins our published reusable workflow by SHA
+# (Dependabot bumps it via the github-actions ecosystem) and runs the default-on
+# checks against our own tree through the published @rmartz/repo-hygiene —
+# validating the consumer install + propagation path end to end.
+#
+# This is distinct from the CI "Self-hygiene" job, which runs the *full* check set
+# from the freshly-built local CLI for regression coverage. This one validates the
+# *shipped distribution*; that one validates the *code in the PR*.
+#
+# This file is self-managed by this repo — it is intentionally NOT the
+# bootstrap-seeded (npm-install-@0.4.0) workflow. Bootstrap is a one-time new-repo
+# starter, not an ongoing manager (see AGENTS.md § Repository conformance).
 
 on:
   pull_request:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  packages: read
-
-env:
-  REPO_HYGIENE_VERSION: 0.4.0
-
 jobs:
-  action-pins:
-    name: GitHub Actions SHA pins
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install ai-repo-hygiene
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          printf '@rmartz:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "${NODE_AUTH_TOKEN}" > ~/.npmrc
-          npm install -g "@rmartz/repo-hygiene@${REPO_HYGIENE_VERSION}"
-      - run: ai-repo-hygiene action-pins --check
+  hygiene:
+    permissions:
+      contents: read
+      packages: read
+    uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@9bea45565355ea99e4669ca2b8db8c8badf21a1b # v1.0.0
