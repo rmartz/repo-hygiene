@@ -65,6 +65,14 @@ Per-check configuration lives in the consuming repo's `.repo-hygiene.yml`.
 `md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps` — see
 [docs/repo-hygiene.md](docs/repo-hygiene.md).
 
+## Requirements
+
+- Node.js >= 20.11
+- pnpm 9 (pinned via `packageManager`)
+
+Consuming repos need neither — the reusable workflow runs the published CLI on a
+GitHub-hosted runner.
+
 ## Local development
 
 ```bash
