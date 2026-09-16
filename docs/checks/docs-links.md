@@ -10,10 +10,9 @@ tags: [hygiene, ci, checks, docs]
 
 **Default:** opt-in · **Config:** `roots`, `exempt`
 
-Intra-repo Markdown link integrity: every relative `[text](path)` link in a docs
-page must resolve to a file that exists. When a docs page or a source file is
-renamed, moved, or deleted, such a link silently rots — it still parses, but a
-reader hits a 404. [`okf`](okf.md) validates only a page's `resource:` frontmatter
+Intra-repo Markdown link integrity: every relative Markdown link in a docs page
+must resolve to a file that exists. When a docs page or a source file is renamed,
+moved, or deleted, such a link silently rots — it still parses, but a reader hits a 404. [`okf`](okf.md) validates only a page's `resource:` frontmatter
 and [`okf-index`](okf-index.md) only that pages are _reachable_ from an index;
 neither checks the inline body links.
 

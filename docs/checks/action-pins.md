@@ -1,7 +1,7 @@
 ---
 type: Library
 title: The action-pins check
-description: Flags GitHub Actions uses: refs not pinned to a full commit SHA with a full-semver version comment; default-on and config-free.
+description: 'Flags GitHub Actions `uses:` refs not pinned to a full commit SHA with a full-semver version comment; default-on and config-free.'
 resource: src/checks/action-pins.ts
 tags: [hygiene, ci, checks, security, supply-chain]
 ---
