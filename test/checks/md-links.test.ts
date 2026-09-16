@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { intraRepoTarget, resolveRel, scanLinks } from '../../src/checks/md-links.js';
+import {
+  intraRepoTarget,
+  parseLinkTarget,
+  resolveRel,
+  scanLinks,
+} from '../../src/checks/md-links.js';
 
 describe('scanLinks', () => {
   it('extracts each link href with its 1-based line number', () => {
@@ -48,5 +53,34 @@ describe('intraRepoTarget', () => {
   it('ignores an absolute or protocol-relative path', () => {
     expect(intraRepoTarget('/repo/root')).toBeNull();
     expect(intraRepoTarget('//cdn.example.com/x')).toBeNull();
+  });
+});
+
+describe('parseLinkTarget', () => {
+  it('splits a relative link into its file path and anchor', () => {
+    expect(parseLinkTarget('../foo.md#a-section')).toEqual({
+      path: '../foo.md',
+      anchor: 'a-section',
+    });
+  });
+
+  it('returns a null anchor when the href has no fragment', () => {
+    expect(parseLinkTarget('./foo.md')).toEqual({ path: './foo.md', anchor: null });
+  });
+
+  it('treats a pure anchor as a same-document link (null path)', () => {
+    expect(parseLinkTarget('#a-section')).toEqual({ path: null, anchor: 'a-section' });
+  });
+
+  it('strips an optional link title before splitting', () => {
+    expect(parseLinkTarget('./foo.md#x "Title"')).toEqual({ path: './foo.md', anchor: 'x' });
+  });
+
+  it('returns null for external, absolute, empty, and bare-hash hrefs', () => {
+    expect(parseLinkTarget('https://example.com/x#y')).toBeNull();
+    expect(parseLinkTarget('mailto:a@b.com')).toBeNull();
+    expect(parseLinkTarget('/repo/root#x')).toBeNull();
+    expect(parseLinkTarget('')).toBeNull();
+    expect(parseLinkTarget('#')).toBeNull();
   });
 });
