@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.0.1...repo-hygiene-v1.1.0) (2026-09-16)
+
+
+### Features
+
+* promote opt-in checks to default-on with opt-out and shared file-caps defaults ([#28](https://github.com/rmartz/repo-hygiene/issues/28)) ([c4dd100](https://github.com/rmartz/repo-hygiene/commit/c4dd100a27c96972bdfb43d963f872f0887bbc42))
+
 ## [1.0.1](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.0.0...repo-hygiene-v1.0.1) (2026-09-16)
 
 
