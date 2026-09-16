@@ -85,6 +85,11 @@ const isGithubYaml = (path: string): boolean =>
 export const actionPinsCheck: Check = {
   name: NAME,
   description: 'GitHub Actions pinned to a full commit SHA with a full-semver comment.',
+  // Default-on: SHA-pinning is the security floor the hygiene suite exists to
+  // spread, needs no config, and only inspects `.github/**` workflow YAML — so it
+  // is safe to run on any consumer. (`package-pins`, its npm analog, is *not*
+  // default-on: promoting it would break consumers using abbreviated ranges.)
+  defaultOn: true,
   async run(ctx) {
     const findings: Finding[] = [];
     for (const path of ctx.files.paths) {

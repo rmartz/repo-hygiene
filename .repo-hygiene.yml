@@ -1,10 +1,24 @@
 # @rmartz/repo-hygiene check configuration for this repo.
 # Each section under `checks` is read by the check of that name; `severity` (when
 # set) overrides that check's findings. See docs/repo-hygiene.md.
+#
+# The CI Self-hygiene job dogfoods every check that applies to this repo against
+# our own tree: conflict-markers, action-pins, package-pins, docs-links,
+# md-pairing (all config-free here), plus file-caps configured below. okf /
+# okf-index are omitted — this is a package, not an OKF docs bundle.
 checks:
-  # Intra-repo Markdown link integrity for docs pages. Forward-looking: the CI
-  # self-hygiene job currently runs only the universally-safe checks; expanding
-  # it to docs-links is tracked as the safe-default audit follow-up.
+  # Intra-repo Markdown link integrity for docs pages.
   docs-links:
     roots: [docs]
     exempt: []
+  # Per-glob size caps, dogfooded against our own source and docs. Caps sit
+  # comfortably above current sizes so the check exercises its full evaluate path
+  # without flagging; tighten them if a file starts to sprawl.
+  file-caps:
+    overrides:
+      - glob: 'src/**/*.ts'
+        lines: { warn: 350, error: 500 }
+        bytes: { warn: 16KB, error: 24KB }
+      - glob: 'docs/**/*.md'
+        lines: { warn: 500, error: 700 }
+        bytes: { warn: 32KB, error: 48KB }

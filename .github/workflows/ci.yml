@@ -62,9 +62,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       # Dogfood the checks against our own tree using the freshly-built CLI (not
-      # the published package), so a regression in a check fails our own CI.
-      # Scoped to the universally-safe checks for now; expanding this set (with a
-      # tailored .repo-hygiene.yml for okf / docs-links / file-caps) is tracked
-      # as the safe-default audit follow-up.
+      # the published package), so a regression in a check fails our own CI. This
+      # runs a broader set than a consumer's default-on set — every check that
+      # applies to this repo, configured via .repo-hygiene.yml — for maximum
+      # regression coverage. okf / okf-index are omitted because this repo is a
+      # package, not an OKF docs bundle (its docs carry no OKF frontmatter and
+      # there is no docs/index.md), so those checks do not apply here.
       - run: pnpm run build
-      - run: node dist/bin/repo-hygiene.js conflict-markers action-pins --check
+      - run: >-
+          node dist/bin/repo-hygiene.js
+          conflict-markers action-pins package-pins docs-links md-pairing file-caps
+          --check --config .repo-hygiene.yml

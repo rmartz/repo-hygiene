@@ -14,6 +14,9 @@ const NAME = 'conflict-markers';
 export const conflictMarkersCheck: Check = {
   name: NAME,
   description: 'Merge-conflict markers in tracked or staged content.',
+  // Default-on: a leftover conflict marker is never intentional, so this is
+  // universally correct with no config and cannot spuriously break a consumer.
+  defaultOn: true,
   async run(ctx) {
     // Preserve the standalone checker's intentional pre-commit bypass.
     if (ctx.mode === '--staged' && ctx.env.ALLOW_CONFLICT_MARKERS) return [];

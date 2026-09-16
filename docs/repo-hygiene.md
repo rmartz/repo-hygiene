@@ -8,9 +8,9 @@ git-derived file sets, selected by mode:
 - `--check-diff` — files changed vs `origin/main`.
 
 Pass check names to restrict a run (`ai-repo-hygiene okf docs-links --check`);
-with none, every registered check runs. Per-repo settings live in
-`.repo-hygiene.yml` under `checks.<name>`, where `severity` (when set) overrides
-a check's findings.
+with none, the **default-on** checks run (`--all` runs every registered check).
+Per-repo settings live in `.repo-hygiene.yml` under `checks.<name>`, where
+`severity` (when set) overrides a check's findings.
 
 ## The distribution contract
 
@@ -20,24 +20,37 @@ For a **new check to reach consumers with no per-repo work**, it must be safe to
 run with no configuration — either it does something universally correct with
 sane defaults, or it no-ops until opted into via `.repo-hygiene.yml`. A check
 that _requires_ new config to avoid failing would break every consumer's CI the
-moment it ships, so that is disallowed. The reusable workflow's default `checks`
-input therefore lists only the universally-safe set; opinionated checks are
-opt-in per repo.
+moment it ships, so that is disallowed.
+
+Each check declares whether it is **default-on** through the `defaultOn` flag on
+its registry entry (`src/types.ts`). The reusable workflow's `checks` input
+defaults to **empty**, and an empty input runs the registry-derived default-on
+set — so the default is _computed_ from the flags, never hardcoded in the YAML,
+and a newly-added default-on check auto-joins every consumer on the next
+Dependabot bump with no edit there. Opinionated checks leave `defaultOn` unset
+and are opt-in per repo (named explicitly in the caller's `checks` input).
+
+`package-pins` is the notable call: it is config-free like `action-pins` (its npm
+analog) but is **not** default-on, because promoting it would break consumers
+whose `package.json` uses abbreviated ranges — exactly the on-arrival breakage the
+contract forbids. Making it a fleet default is a separate, deliberate decision.
 
 ## Checks
 
-| Check              | What it flags                                                            |
-| ------------------ | ------------------------------------------------------------------------ |
-| `conflict-markers` | Leftover Git conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`).         |
-| `action-pins`      | GitHub Actions `uses:` refs not pinned to a full commit SHA.             |
-| `package-pins`     | Dependency specifiers that violate the repo's pinning policy.            |
-| `docs-links`       | Broken intra-repo Markdown links among docs pages (`roots`).             |
-| `md-links`         | Markdown link integrity more broadly.                                    |
-| `md-pairing`       | Directive/doc `.md` pairing rules (symlinked directives are violations). |
-| `okf`              | OKF docs-frontmatter vocabulary + exemptions (`types`, `roots`).         |
-| `okf-fields`       | Optional-field validation within OKF frontmatter.                        |
-| `okf-index`        | The reserved OKF root index listing.                                     |
-| `file-caps`        | Files exceeding size caps, with a grandfathered baseline.                |
+| Check              | Default | What it flags                                                            |
+| ------------------ | ------- | ------------------------------------------------------------------------ |
+| `conflict-markers` | on      | Leftover Git conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`).         |
+| `action-pins`      | on      | GitHub Actions `uses:` refs not pinned to a full commit SHA.             |
+| `package-pins`     | opt-in  | Dependency specifiers that violate the repo's pinning policy.            |
+| `docs-links`       | opt-in  | Broken intra-repo Markdown links among docs pages (`roots`).             |
+| `md-pairing`       | opt-in  | Directive/doc `.md` pairing rules (symlinked directives are violations). |
+| `okf`              | opt-in  | OKF docs-frontmatter vocabulary + exemptions (`types`, `roots`).         |
+| `okf-index`        | opt-in  | The reserved OKF root index listing.                                     |
+| `file-caps`        | opt-in  | Files exceeding size caps, with a grandfathered baseline.                |
+
+`md-links` and `okf-fields` are **shared modules** (inline-link parsing and OKF
+optional-field validation) consumed by the checks above, not separately
+registered checks — so they have no default/opt-in status of their own.
 
 ## Authoring a check
 
@@ -137,9 +150,9 @@ export function builtinChecks(): Check[] {
 The registry is built from this explicit list (not a mutable global), so tests
 can construct a registry from fakes with no import-order side effects. Being in
 `builtinChecks()` makes the check _runnable_ by name; whether it runs by
-_default_ for consumers is a separate decision — the reusable workflow's default
-`checks` input (`conflict-markers action-pins`) — and belongs to the safe-default
-audit, not to registration.
+_default_ for consumers is the separate `defaultOn` flag on the check (step 4) —
+`registry.defaultNames()` collects the default-on set, and that is what a bare
+run and the workflow's empty `checks` input resolve to.
 
 ### 4. Config and default-safety (`.repo-hygiene.yml`)
 
@@ -167,17 +180,20 @@ consumer on the next Dependabot bump with no chance for them to edit YAML first,
 a check must be safe to run with _no_ configuration. Two legal shapes:
 
 - **Universally correct** — it does the right thing everywhere with sane
-  built-in defaults (e.g. `conflict-markers`, `action-pins`). These can go in
-  the workflow's default `checks` set.
+  built-in defaults (e.g. `conflict-markers`, `action-pins`). Mark it
+  `defaultOn: true` on the check so it joins the default-on set.
 - **No-op until opted in** — with no config section it returns `[]` and never
   fails. `file-caps` is the model: `fileCapsCheck.run` calls
   `parseFileCapsConfig(ctx.settings)` and, when there are no `overrides`,
-  returns `[]` immediately. These ship in the registry but stay _out_ of the
-  default set; a repo opts in by naming the check in its caller and adding a
-  config section.
+  returns `[]` immediately. Leave `defaultOn` unset; a repo opts in by naming the
+  check in its caller and adding a config section.
 
 A check that _requires_ new config to avoid failing is disallowed — it would
-break every consumer's CI the moment it shipped.
+break every consumer's CI the moment it shipped. "Universally correct" is a high
+bar: it must not fail an arbitrary consumer on arrival. `package-pins` clears the
+config-free bar but not this one (a repo with `^3` ranges would break), so it
+stays opt-in — being config-free is necessary but not sufficient for
+`defaultOn`.
 
 ### 5. Test it (`test/checks/*.test.ts`)
 
@@ -260,10 +276,11 @@ A newly-added check does **not** require any per-repo change to start running:
    runs Dependabot's `github-actions` ecosystem. Dependabot opens a PR bumping
    that pin to the new release on its normal schedule.
 3. **Pick-up.** Merging the Dependabot PR moves the consumer onto the new
-   package version. A **universally-safe** check in the default `checks` set now
-   runs automatically; an **opt-in** check ships in the package but stays dormant
-   until the repo adds it to its caller's `checks` input and a `.repo-hygiene.yml`
-   section.
+   package version. A new **default-on** check now runs automatically — the
+   consumer's empty `checks` input resolves to the registry's default-on set, so
+   the check auto-joins with no edit to their caller. An **opt-in** check ships in
+   the package but stays dormant until the repo adds it to its caller's `checks`
+   input and a `.repo-hygiene.yml` section.
 
 This is why default-safety (step 4) is non-negotiable: step 3 gives the consumer
 no opportunity to adjust configuration before the new check runs.
