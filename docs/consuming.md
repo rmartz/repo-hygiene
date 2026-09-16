@@ -9,8 +9,8 @@ tags: [consumer, setup, configuration]
 
 This is the consumer-facing guide: how to adopt `@rmartz/repo-hygiene` in a
 repository, choose and configure its checks, and confirm the setup works. For
-the check registry and how a new check is authored, see
-[repo-hygiene checks](repo-hygiene.md).
+the check registry and how a new check is authored, see the
+[checks reference](checks/index.md) and [authoring a check](authoring-a-check.md).
 
 ## 1. Add the caller workflow and Dependabot entry
 
@@ -73,7 +73,7 @@ with:
 
 `config:` points at your per-repo `.repo-hygiene.yml` (section 3). Which checks
 are default-on vs opt-in, and why, is documented in
-[repo-hygiene checks → Default-on vs opt-in](repo-hygiene.md).
+[the distribution contract](distribution-contract.md).
 
 ## 3. Configure checks in `.repo-hygiene.yml`
 

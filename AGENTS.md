@@ -5,7 +5,7 @@ CI checks (conflict markers, GitHub Actions SHA pins, package pins, docs link
 integrity, OKF frontmatter, file-size caps, AGENTS/CLAUDE pairing) plus the
 **reusable workflow** (`.github/workflows/hygiene.yml`) that distributes them to
 consuming repos, pinned by version and kept current by Dependabot. See
-[README.md](README.md) and [docs/repo-hygiene.md](docs/repo-hygiene.md).
+[README.md](README.md) and the [documentation](docs/index.md).
 
 ## Documentation — update it as part of every task
 
@@ -16,8 +16,8 @@ task:
   file, so your change is consistent with what is already documented.
 - **Update and correct in the same PR.** If your change adds, alters, or
   contradicts anything a doc says — a check's behavior, a config key, a command,
-  an interface — fix that doc in the same PR. When you add a check, extend
-  [docs/repo-hygiene.md](docs/repo-hygiene.md) (its behavior, config, and
+  an interface — fix that doc in the same PR. When you add a check, add a page
+  under [docs/checks/](docs/checks/index.md) (its behavior, config, and
   default-safety classification). An outdated doc is worse than no doc.
 - **Correct drift you notice.** If you pass a doc that is stale or wrong while
   doing something else, fix it (or, if out of scope, note it) — do not leave
@@ -83,7 +83,7 @@ Most are enforced by eslint / the hygiene checks; the intent:
 
 ## Adding a check
 
-See the authoring guide in [docs/repo-hygiene.md](docs/repo-hygiene.md): implement
+See the authoring guide in [docs/authoring-a-check.md](docs/authoring-a-check.md): implement
 the `Check` contract, read files through the resolved `FileSet` (never call `git`
 directly — use `boundedRun` from `src/lib/bounded-subprocess.js` if you must shell
 out), register it in `src/registry.ts`, and set `defaultOn: true` **only** for a

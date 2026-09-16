@@ -70,7 +70,7 @@ the [consumer guide](docs/consuming.md) for the full reference.
 
 `conflict-markers`, `action-pins`, `package-pins`, `docs-links`, `md-links`,
 `md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps` — see
-[docs/repo-hygiene.md](docs/repo-hygiene.md).
+[docs/checks/](docs/checks/index.md).
 
 ## Requirements
 

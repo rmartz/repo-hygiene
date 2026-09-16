@@ -84,7 +84,7 @@ conventions are enforced by the `okf-index` check.
 
 Conformance is gated by this repo's **Self-hygiene** CI job, which runs the
 `okf` (frontmatter) and `okf-index` (navigability) checks from
-[`@rmartz/repo-hygiene`](repo-hygiene.md) against our own `docs/` tree. Run the
+[`@rmartz/repo-hygiene`](overview.md) against our own `docs/` tree. Run the
 same checks locally:
 
 ```bash
