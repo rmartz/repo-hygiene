@@ -1,0 +1,9 @@
+# >>> ai-tools managed (ensure-project-config) >>>
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+coverage/
+.git-worktrees/
+.DS_Store
+# <<< ai-tools managed (ensure-project-config) <<<

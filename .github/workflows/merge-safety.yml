@@ -1,0 +1,72 @@
+# >>> ai-tools managed (ensure-project-config) — do not edit by hand >>>
+# Source of truth: @rmartz/bootstrap golden workflow files. Re-run the
+# /bootstrap skill (ai-ensure-project-config) to re-sync; local edits are lost.
+
+name: merge-safety
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to evaluate
+        required: true
+
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+  actions: write
+  packages: read
+
+concurrency:
+  group: merge-safety-${{ github.event_name == 'push' && 'invalidate' || github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: false
+
+env:
+  MERGE_SAFETY_VERSION: 0.4.0
+
+jobs:
+  evaluate:
+    name: Evaluate one PR
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+      BASE_REF: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+          fetch-depth: 0 # merge-base + diffs need full history
+      - name: Install ai-merge-safety
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '@rmartz:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "${NODE_AUTH_TOKEN}" > ~/.npmrc
+          npm install -g "@rmartz/pr-review@${MERGE_SAFETY_VERSION}"
+      # Fetch the PR head as git data so merge-base/diffs resolve — the dispatched
+      # (workflow_dispatch) path checks out the base and would otherwise lack it.
+      - run: git fetch --quiet origin "${BASE_REF}" "pull/${PR_NUMBER}/head"
+      - run: ai-merge-safety evaluate --pr "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --base "origin/${BASE_REF}"
+
+  invalidate:
+    name: Invalidate open PRs (base moved)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Install ai-merge-safety
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '@rmartz:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "${NODE_AUTH_TOKEN}" > ~/.npmrc
+          npm install -g "@rmartz/pr-review@${MERGE_SAFETY_VERSION}"
+      - run: ai-merge-safety invalidate --repo "${GITHUB_REPOSITORY}"
