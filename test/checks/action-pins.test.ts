@@ -26,6 +26,22 @@ describe('parseUsesLine', () => {
   it('returns null for a non-uses line', () => {
     expect(parseUsesLine('      - run: pnpm test')).toBeNull();
   });
+
+  it('trims surrounding whitespace around the value and quotes', () => {
+    expect(parseUsesLine('- uses:   "actions/checkout@abc"   # v7.0.0')).toEqual({
+      uses: 'actions/checkout@abc',
+      comment: 'v7.0.0',
+    });
+  });
+
+  it('parses a whitespace-heavy line in linear time (ReDoS regression)', () => {
+    // A `uses:` line with a long run of spaces made the old lazy `(.+?)\s*$`
+    // regex backtrack polynomially. The greedy `(.*)$` form is linear.
+    const line = `- uses: ${' '.repeat(50_000)}`;
+    const start = Date.now();
+    expect(parseUsesLine(line)).toBeNull(); // only whitespace after `uses:`
+    expect(Date.now() - start).toBeLessThan(1_000);
+  });
 });
 
 describe('checkActionRef', () => {

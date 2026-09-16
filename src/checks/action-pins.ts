@@ -24,9 +24,12 @@ const FULL_SEMVER_COMMENT = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z
 
 /** Parse the `uses:` value and any trailing `# comment` from one line. */
 export function parseUsesLine(line: string): { uses: string; comment?: string } | null {
-  const m = /^\s*(?:-\s*)?uses:\s*(.+?)\s*$/.exec(line);
+  // Greedy `(.*)$` (not lazy `(.+?)\s*$`) so the trailing-whitespace match is
+  // unambiguous — the lazy form backtracks polynomially on a `uses:` line with
+  // many spaces (ReDoS), and the capture is trimmed here anyway.
+  const m = /^\s*(?:-\s*)?uses:\s*(.*)$/.exec(line);
   if (!m) return null;
-  let rest = m[1] ?? '';
+  let rest = (m[1] ?? '').trim();
   let comment: string | undefined;
   const hash = rest.indexOf('#');
   if (hash !== -1) {

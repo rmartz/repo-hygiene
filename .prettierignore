@@ -4,7 +4,6 @@ dist/
 .turbo/
 *.tsbuildinfo
 coverage/
-.git-worktrees/
 # <<< ai-tools managed (ensure-project-config) <<<
 
 # Generated files Prettier must not own (outside the managed block above).
