@@ -371,29 +371,31 @@ const ctx = (files: FileSet, settings = {}) => ({
   env: {},
 });
 
-it('reports each hit with its 1-based line', () => {
-  expect(scanPhrases('ok\nx @ts-ignore\n', ['@ts-ignore'])).toEqual([
-    { phrase: '@ts-ignore', line: 2 },
-  ]);
-});
+describe('banned-phrases', () => {
+  it('reports each hit with its 1-based line', () => {
+    expect(scanPhrases('ok\nx @ts-ignore\n', ['@ts-ignore'])).toEqual([
+      { phrase: '@ts-ignore', line: 2 },
+    ]);
+  });
 
-it('no-ops when unconfigured', async () => {
-  expect(await bannedPhrasesCheck.run(ctx(filesOf({ 'a.ts': 'DO NOT MERGE\n' })))).toEqual([]);
-});
+  it('no-ops when unconfigured', async () => {
+    expect(await bannedPhrasesCheck.run(ctx(filesOf({ 'a.ts': 'DO NOT MERGE\n' })))).toEqual([]);
+  });
 
-it('flags a configured phrase', async () => {
-  const findings = await bannedPhrasesCheck.run(
-    ctx(filesOf({ 'a.ts': 'DO NOT MERGE\n' }), { phrases: ['DO NOT MERGE'] }),
-  );
-  expect(findings).toEqual([
-    {
-      check: 'banned-phrases',
-      path: 'a.ts',
-      line: 1,
-      message: 'banned phrase "DO NOT MERGE"',
-      severity: 'error',
-    },
-  ]);
+  it('flags a configured phrase', async () => {
+    const findings = await bannedPhrasesCheck.run(
+      ctx(filesOf({ 'a.ts': 'DO NOT MERGE\n' }), { phrases: ['DO NOT MERGE'] }),
+    );
+    expect(findings).toEqual([
+      {
+        check: 'banned-phrases',
+        path: 'a.ts',
+        line: 1,
+        message: 'banned phrase "DO NOT MERGE"',
+        severity: 'error',
+      },
+    ]);
+  });
 });
 ```
 
