@@ -1,6 +1,6 @@
 # @rmartz/repo-hygiene check configuration for this repo.
 # Each section under `checks` is read by the check of that name; `severity` (when
-# set) overrides that check's findings. See docs/repo-hygiene.md.
+# set) overrides that check's findings. See docs/overview.md.
 #
 # The CI Self-hygiene job dogfoods every check that applies to this repo against
 # our own tree: conflict-markers, action-pins, package-pins, docs-links,
@@ -17,6 +17,9 @@ checks:
   okf:
     types: [Skill, Script, Library, Design, Reference]
     resourceExemptTypes: [Design, Reference]
+    # index.md pages carry no frontmatter (the okf-index rule), so each
+    # directory's index.md is exempt from okf's frontmatter requirement.
+    exempt: [docs/index.md, docs/checks/index.md]
   # Per-glob size caps, dogfooded against our own source and docs. Caps sit
   # comfortably above current sizes so the check exercises its full evaluate path
   # without flagging; tighten them if a file starts to sprawl.
