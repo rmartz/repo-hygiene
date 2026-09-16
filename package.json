@@ -1,6 +1,19 @@
 {
   "name": "@rmartz/repo-hygiene",
   "version": "0.9.0",
+  "description": "Low-cost repo-hygiene CI checks (conflict markers, GitHub Actions SHA pins, docs link integrity, file-size caps, and more), distributed via a reusable workflow and kept current by Dependabot.",
+  "keywords": [
+    "ci",
+    "lint",
+    "repo-hygiene",
+    "github-actions",
+    "reusable-workflow",
+    "conflict-markers"
+  ],
+  "homepage": "https://github.com/rmartz/repo-hygiene#readme",
+  "bugs": {
+    "url": "https://github.com/rmartz/repo-hygiene/issues"
+  },
   "type": "module",
   "packageManager": "pnpm@9.12.0",
   "engines": {
