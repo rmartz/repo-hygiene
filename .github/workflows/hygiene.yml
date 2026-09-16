@@ -1,0 +1,65 @@
+name: Repo Hygiene (reusable)
+
+# The single entry point consuming repos pin. A consumer adds a tiny caller:
+#
+#   jobs:
+#     hygiene:
+#       permissions: { contents: read, packages: read }
+#       uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha>  # vX.Y.Z
+#
+# Dependabot's github-actions ecosystem bumps that <sha> pin via PRs, so updates
+# — including newly-added checks — propagate with no per-repo YAML edits. The
+# @rmartz/repo-hygiene version this workflow installs is bumped in lockstep with
+# each release (release-please extra-files), so a given pinned ref is fully
+# reproducible.
+
+on:
+  workflow_call:
+    inputs:
+      checks:
+        description: >-
+          Space-separated check names to run. Defaults to the universally-safe
+          set; pass e.g. "okf docs-links" to opt into repo-specific checks.
+        type: string
+        required: false
+        default: conflict-markers action-pins
+      version:
+        description: '@rmartz/repo-hygiene version to install (pinned to this release).'
+        type: string
+        required: false
+        default: 0.8.0 # x-release-please-version
+      node-version:
+        description: Node.js version to run the checks under.
+        type: string
+        required: false
+        default: '22'
+      config:
+        description: Path to the .repo-hygiene.yml config (optional).
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  hygiene:
+    name: Repo hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: https://npm.pkg.github.com
+          scope: '@rmartz'
+      - name: Install ai-repo-hygiene
+        env:
+          # The public @rmartz/repo-hygiene package on GitHub Packages is readable
+          # with the built-in GITHUB_TOKEN — no consumer PAT required.
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm install -g "@rmartz/repo-hygiene@${{ inputs.version }}"
+      - name: Run checks
+        run: ai-repo-hygiene ${{ inputs.checks }} --check ${{ inputs.config && format('--config {0}', inputs.config) || '' }}

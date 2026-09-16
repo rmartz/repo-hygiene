@@ -1,0 +1,10 @@
+# @rmartz/repo-hygiene check configuration for this repo.
+# Each section under `checks` is read by the check of that name; `severity` (when
+# set) overrides that check's findings. See docs/repo-hygiene.md.
+checks:
+  # Intra-repo Markdown link integrity for docs pages. Forward-looking: the CI
+  # self-hygiene job currently runs only the universally-safe checks; expanding
+  # it to docs-links is tracked as the safe-default audit follow-up.
+  docs-links:
+    roots: [docs]
+    exempt: []
