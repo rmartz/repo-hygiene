@@ -35,6 +35,13 @@ export interface Registry {
   all(): Check[];
   /** All registered check names, in registration order. */
   names(): string[];
+  /**
+   * Names of the **default-on** checks (`defaultOn === true`), in registration
+   * order. This is the set the CLI runs when no checks are named, and the set the
+   * reusable workflow's empty `checks` default resolves to — so a new default-on
+   * check auto-joins consumers with no YAML edit.
+   */
+  defaultNames(): string[];
 }
 
 /** Build a registry from `checks` (defaults to the built-in checks). */
@@ -44,5 +51,6 @@ export function createRegistry(checks: Check[] = builtinChecks()): Registry {
     get: (name) => byName.get(name),
     all: () => [...byName.values()],
     names: () => [...byName.keys()],
+    defaultNames: () => [...byName.values()].filter((c) => c.defaultOn).map((c) => c.name),
   };
 }

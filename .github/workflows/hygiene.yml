@@ -18,11 +18,14 @@ on:
     inputs:
       checks:
         description: >-
-          Space-separated check names to run. Defaults to the universally-safe
-          set; pass e.g. "okf docs-links" to opt into repo-specific checks.
+          Space-separated check names to run. Empty (the default) runs the
+          package's registry-derived default-on set (the universally-safe
+          checks), so a newly-added default-on check auto-joins on the next
+          Dependabot bump with no edit here; pass e.g. "okf docs-links" to opt
+          into repo-specific checks.
         type: string
         required: false
-        default: conflict-markers action-pins
+        default: ''
       version:
         description: '@rmartz/repo-hygiene version to install (pinned to this release).'
         type: string

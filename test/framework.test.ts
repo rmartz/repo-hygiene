@@ -59,6 +59,35 @@ describe('createRegistry', () => {
   });
 });
 
+describe('registry defaultNames', () => {
+  it('returns only the defaultOn checks, in registration order', () => {
+    const registry = createRegistry([
+      fakeCheck('a', []),
+      { ...fakeCheck('b', []), defaultOn: true },
+      { ...fakeCheck('c', []), defaultOn: true },
+    ]);
+    expect(registry.defaultNames()).toEqual(['b', 'c']);
+  });
+
+  it('the built-in default-on set is exactly conflict-markers and action-pins', () => {
+    expect(createRegistry().defaultNames()).toEqual(['conflict-markers', 'action-pins']);
+  });
+
+  it('the opinionated checks are opt-in (not default-on)', () => {
+    const defaults = createRegistry().defaultNames();
+    for (const name of [
+      'package-pins',
+      'docs-links',
+      'md-pairing',
+      'okf',
+      'okf-index',
+      'file-caps',
+    ]) {
+      expect(defaults).not.toContain(name);
+    }
+  });
+});
+
 describe('runHygiene', () => {
   const config = { checks: {} };
 
