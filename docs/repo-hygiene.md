@@ -270,6 +270,141 @@ queues one git invocation's output, so multi-git checks chain several. See
 pattern. Run the suite with `pnpm test` (and `pnpm typecheck` / `pnpm lint`)
 before pushing; the pre-push gate runs the same commands CI does.
 
+## A worked example: `banned-phrases`
+
+The five steps above, assembled into one small check that flags configured
+forbidden substrings (say `@ts-ignore` or a `DO NOT MERGE` marker) in tracked
+files. It is **illustrative** — this check is _not_ shipped in the package — but
+the snippets are a complete, adaptable template. Note the shape it models: it
+reads a config section and **no-ops when unconfigured**, so it is strictly
+opt-in (the safe-default shape from step 4).
+
+**The check module** (`src/checks/banned-phrases.ts`) — a pure scanner plus the
+thin adapter (steps 1–2 and 4):
+
+```ts
+import type { Check, CheckConfig, Finding } from '../types.js';
+
+const NAME = 'banned-phrases';
+
+/** The `phrases` config: a list of forbidden substrings (empty when unset). */
+function bannedPhrases(settings: CheckConfig): string[] {
+  const raw = settings.phrases;
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw) || !raw.every((p) => typeof p === 'string')) {
+    throw new Error(`${NAME}: "phrases" must be a list of strings`);
+  }
+  return raw;
+}
+
+/** Every (phrase, line) hit in one file's text — the pure, unit-tested core. */
+export function scanPhrases(text: string, phrases: string[]): { phrase: string; line: number }[] {
+  const hits: { phrase: string; line: number }[] = [];
+  text.split('\n').forEach((lineText, i) => {
+    for (const phrase of phrases) {
+      if (lineText.includes(phrase)) hits.push({ phrase, line: i + 1 });
+    }
+  });
+  return hits;
+}
+
+export const bannedPhrasesCheck: Check = {
+  name: NAME,
+  description: 'Flags configured forbidden substrings in tracked files.',
+  // No `defaultOn`: it no-ops with no config, so it ships opt-in.
+  async run(ctx) {
+    const phrases = bannedPhrases(ctx.settings);
+    if (phrases.length === 0) return []; // dormant until a repo configures phrases
+    const findings: Finding[] = [];
+    for (const path of ctx.files.paths) {
+      const text = await ctx.files.read(path);
+      for (const { phrase, line } of scanPhrases(text, phrases)) {
+        findings.push({
+          check: NAME,
+          path,
+          line,
+          message: `banned phrase "${phrase}"`,
+          severity: 'error',
+        });
+      }
+    }
+    return findings;
+  },
+};
+```
+
+**Register it** (`src/registry.ts`, step 3) — add the import and one line to
+`builtinChecks()`:
+
+```ts
+import { bannedPhrasesCheck } from './checks/banned-phrases.js';
+// …then inside builtinChecks(): return [ …existing checks…, bannedPhrasesCheck ];
+```
+
+**Opt in** (a consumer's `.repo-hygiene.yml`, step 4) — with no section the
+check stays silent; a repo turns it on by listing phrases and naming
+`banned-phrases` in its caller's `checks` input:
+
+```yaml
+checks:
+  banned-phrases:
+    phrases: ['@ts-ignore', 'DO NOT MERGE']
+```
+
+**Test it** (`test/checks/banned-phrases.test.ts`, step 5) — the pure scanner
+directly, then `run` with an in-memory `FileSet` (no git, no `boundedRun`),
+including the no-op-when-unconfigured case:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import type { FileSet } from '../../src/discovery.js';
+import { scanPhrases, bannedPhrasesCheck } from '../../src/checks/banned-phrases.js';
+
+const filesOf = (entries: Record<string, string>): FileSet => ({
+  paths: Object.keys(entries),
+  read: (p) => entries[p] ?? '',
+});
+const ctx = (files: FileSet, settings = {}) => ({
+  mode: '--check' as const,
+  files,
+  settings,
+  env: {},
+});
+
+describe('banned-phrases', () => {
+  it('reports each hit with its 1-based line', () => {
+    expect(scanPhrases('ok\nx @ts-ignore\n', ['@ts-ignore'])).toEqual([
+      { phrase: '@ts-ignore', line: 2 },
+    ]);
+  });
+
+  it('no-ops when unconfigured', async () => {
+    expect(await bannedPhrasesCheck.run(ctx(filesOf({ 'a.ts': 'DO NOT MERGE\n' })))).toEqual([]);
+  });
+
+  it('flags a configured phrase', async () => {
+    const findings = await bannedPhrasesCheck.run(
+      ctx(filesOf({ 'a.ts': 'DO NOT MERGE\n' }), { phrases: ['DO NOT MERGE'] }),
+    );
+    expect(findings).toEqual([
+      {
+        check: 'banned-phrases',
+        path: 'a.ts',
+        line: 1,
+        message: 'banned phrase "DO NOT MERGE"',
+        severity: 'error',
+      },
+    ]);
+  });
+});
+```
+
+That is the whole arc: a pure function you unit-test, a thin adapter, one
+registry line, an opt-in config section, and a test — no framework plumbing to
+touch. Whether it should be **default-on** is the separate `defaultOn` decision
+from step 4; a substring blocklist is inherently repo-specific, so it stays
+opt-in.
+
 ## How a check reaches consumers
 
 A newly-added check does **not** require any per-repo change to start running:
