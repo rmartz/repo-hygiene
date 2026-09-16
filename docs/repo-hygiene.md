@@ -1,3 +1,11 @@
+---
+type: Library
+title: repo-hygiene checks
+description: The check registry, the safe-default distribution contract, and how to author a new hygiene check for @rmartz/repo-hygiene.
+resource: src/index.ts
+tags: [hygiene, ci, checks]
+---
+
 # repo-hygiene checks
 
 `@rmartz/repo-hygiene` runs a registry of independent checks over one of three
