@@ -46,8 +46,12 @@ export async function runHygiene(registry: Registry, req: RunRequest): Promise<R
   const findings: Finding[] = [];
   for (const check of checks) {
     const settings = req.config.checks[check.name] ?? {};
+    if (settings.enabled === false) continue; // per-repo opt-out
     const raw = await check.run({ mode: req.mode, files, cwd: req.cwd, settings, env });
-    const override = settings.severity;
+    // A repo's explicit `severity` wins; otherwise the check's `defaultSeverity`
+    // (e.g. `warn` for an opinionated default-on check); otherwise the intrinsic
+    // severity each finding carries.
+    const override = settings.severity ?? check.defaultSeverity;
     for (const finding of raw) {
       findings.push(override ? { ...finding, severity: override } : finding);
     }

@@ -98,6 +98,11 @@ export function validateDoc(
 export const okfCheck: Check = {
   name: NAME,
   description: 'Open Knowledge Format frontmatter conformance for docs pages.',
+  // Default-on but warn by default: surfaces missing/invalid frontmatter on every
+  // repo without failing one that has docs/ but has not adopted OKF. A repo
+  // enforces it with `severity: error` once its docs conform.
+  defaultOn: true,
+  defaultSeverity: 'warn',
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     // In --staged mode ctx.files.read reads the git index; repoPathExists probes

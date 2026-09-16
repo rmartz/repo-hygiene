@@ -1,14 +1,14 @@
 ---
 type: Library
 title: The file-caps check
-description: Enforces per-glob line and byte size caps with a grandfathered migration baseline; opt-in.
+description: Enforces per-glob line and byte size caps with a grandfathered migration baseline; on by default with warn-tier shared caps.
 resource: src/checks/file-caps.ts
 tags: [hygiene, ci, checks, size]
 ---
 
 # `file-caps`
 
-**Default:** opt-in · **Config:** `overrides` (plus the `.repo-hygiene-baseline.json` state file)
+**Default:** on (warn-tier defaults) · **Config:** `overrides` (+ `.repo-hygiene-baseline.json`) · **Opt out:** `enabled: false`
 
 Per-glob file size caps with a migration ramp. Each file takes the **first
 matching** `overrides` entry (most-specific first, first-match-wins — no merge) and
@@ -41,8 +41,15 @@ checks:
         lines: { warn: 500, error: 700 }
 ```
 
-With no `overrides` the check returns `[]` immediately — the no-op-until-opted-in
-shape that keeps it safe to ship.
+## Shared defaults
+
+`file-caps` is **default-on**: it ships **warn-tier shared defaults** (generous
+`lines`/`bytes` caps for common code and Markdown files) that apply when a repo
+configures nothing, so it is advisory-only and safe on arrival. A repo's own
+`overrides` are consulted **first** (they match ahead of the defaults, per
+first-match-wins), so you tighten any glob — or add an `error` tier — by listing
+it. The shared defaults carry no `error` tier, so they never hard-fail CI; to turn
+the check off entirely, use `enabled: false`.
 
 ## The baseline ramp (`--update-baseline`)
 

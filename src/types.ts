@@ -40,6 +40,12 @@ export interface Finding {
 export interface CheckConfig {
   /** Overrides the severity of every finding this check emits (the ramp). */
   severity?: Severity;
+  /**
+   * When `false`, the runner skips this check entirely — the per-repo opt-out for
+   * a default-on check a repo cannot (yet) satisfy. Defaults to enabled; wins over
+   * how the check was selected (default set or explicitly named).
+   */
+  enabled?: boolean;
   [key: string]: unknown;
 }
 
@@ -75,5 +81,13 @@ export interface Check {
    * new default-on check auto-joins the default; it is not hardcoded in the YAML.
    */
   defaultOn?: boolean;
+  /**
+   * The severity this check's findings take when the repo has not set a
+   * `severity` override — the check's built-in default. An opinionated default-on
+   * check sets this to `warn` so it surfaces findings everywhere without blocking
+   * CI; a repo enforces it by setting `severity: error`. Omitted → each finding
+   * keeps the intrinsic severity the check emitted.
+   */
+  defaultSeverity?: Severity;
   run(ctx: CheckContext): Promise<Finding[]>;
 }

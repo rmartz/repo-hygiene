@@ -26,6 +26,16 @@ describe('parseConfig', () => {
     expect(() => parseConfig('checks:\n  x:\n    severity: fatal\n')).toThrow(/invalid severity/);
   });
 
+  it('accepts enabled: false on a check section (the opt-out)', () => {
+    expect(parseConfig('checks:\n  okf:\n    enabled: false\n')).toEqual({
+      checks: { okf: { enabled: false } },
+    });
+  });
+
+  it('rejects a non-boolean enabled', () => {
+    expect(() => parseConfig('checks:\n  okf:\n    enabled: nope\n')).toThrow(/invalid enabled/);
+  });
+
   it('rejects a non-mapping top level', () => {
     expect(() => parseConfig('- a\n- b\n')).toThrow(/top level must be a mapping/);
   });

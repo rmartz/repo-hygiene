@@ -3,7 +3,7 @@ import { resolveFileSet, type Mode } from '../discovery.js';
 import type { Check, CheckConfig, Finding } from '../types.js';
 import {
   METRICS,
-  parseFileCapsConfig,
+  resolveFileCapsOverrides,
   type Metric,
   type OverrideEntry,
   type Tier,
@@ -134,9 +134,11 @@ async function measureAll(mode: Mode, cwd: string): Promise<FileMetrics[]> {
 export const fileCapsCheck: Check = {
   name: NAME,
   description: 'Per-glob line/byte size caps with a grandfather migration ramp.',
+  // Default-on: ships warn-tier shared defaults (see file-caps-config), so it is
+  // advisory-only until a repo adds its own error caps — safe to run on arrival.
+  defaultOn: true,
   async run(ctx) {
-    const entries = parseFileCapsConfig(ctx.settings);
-    if (entries.length === 0) return [];
+    const entries = resolveFileCapsOverrides(ctx.settings);
     const cwd = ctx.cwd ?? process.cwd();
     const metrics: FileMetrics[] = [];
     for (const path of ctx.files.paths)
@@ -161,7 +163,7 @@ export async function updateFileCapsBaseline(opts: {
   settings: CheckConfig;
 }): Promise<BaselineUpdate> {
   const cwd = opts.cwd ?? process.cwd();
-  const entries = parseFileCapsConfig(opts.settings);
+  const entries = resolveFileCapsOverrides(opts.settings);
   const overCaps = collectOverCaps(await measureAll('--check', cwd), compile(entries));
   const existing = loadBaseline(cwd);
   const next = existing === null ? buildBaseline(overCaps) : ratchetBaseline(overCaps, existing);
