@@ -1,9 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateOkfIndex, type DocFile } from '../../src/checks/okf-index.js';
 
-const cfg = { roots: ['docs'], indexName: 'index.md' };
+const cfg = {
+  roots: ['docs'],
+  indexName: 'index.md',
+  nestedIndexes: true,
+  noUpwardLinks: false,
+  noSiblingLinks: false,
+};
 const file = (path: string, content = ''): DocFile => ({ path, content });
 const messages = (files: DocFile[]): string[] => evaluateOkfIndex(files, cfg).map((f) => f.message);
+const messagesWith = (files: DocFile[], overrides: Partial<typeof cfg>): string[] =>
+  evaluateOkfIndex(files, { ...cfg, ...overrides }).map((f) => f.message);
 
 describe('evaluateOkfIndex — navigability', () => {
   it('passes a fully navigable bundle', () => {
@@ -109,6 +117,70 @@ describe('evaluateOkfIndex — nesting rule', () => {
     ];
     // ../index.md and ../b/index.md from docs/a/index.md are up/sibling — not flagged.
     expect(evaluateOkfIndex(files, cfg)).toEqual([]);
+  });
+});
+
+describe('evaluateOkfIndex — flat hierarchy (nestedIndexes: false)', () => {
+  it('allows a root index to link a page one directory down directly', () => {
+    const files = [
+      file('docs/index.md', '- [Build](scripts/build.md)\n'),
+      file('docs/scripts/build.md'),
+    ];
+    // Nested (default) flags this over-reach; flat allows it.
+    expect(messages(files)).toContain(
+      'docs/index.md links directly to docs/scripts/build.md; link its subdirectory index.md instead',
+    );
+    expect(messagesWith(files, { nestedIndexes: false })).toEqual([]);
+  });
+
+  it('allows a root index to link a page several directories down directly', () => {
+    const files = [file('docs/index.md', '- [Deep](a/b/deep.md)\n'), file('docs/a/b/deep.md')];
+    expect(messagesWith(files, { nestedIndexes: false })).toEqual([]);
+  });
+
+  it('still requires an index at the root', () => {
+    const files = [file('docs/guide.md')];
+    expect(messagesWith(files, { nestedIndexes: false })).toContain(
+      'docs/ is missing an index.md (needed to index its pages)',
+    );
+  });
+});
+
+describe('evaluateOkfIndex — noUpwardLinks', () => {
+  const files = [
+    file('docs/index.md', '- [A](a/index.md)\n'),
+    file('docs/a/index.md', '- [Up](../index.md)\n- [C](c.md)\n'),
+    file('docs/a/c.md'),
+  ];
+
+  it('leaves upward links alone by default', () => {
+    expect(evaluateOkfIndex(files, cfg)).toEqual([]);
+  });
+
+  it('flags an index linking into an ancestor directory when enabled', () => {
+    expect(messagesWith(files, { noUpwardLinks: true })).toContain(
+      'docs/a/index.md links upward to docs/index.md; an index must not link to a file in an ancestor directory',
+    );
+  });
+});
+
+describe('evaluateOkfIndex — noSiblingLinks', () => {
+  const files = [
+    file('docs/index.md', '- [A](a/index.md)\n- [B](b/index.md)\n'),
+    file('docs/a/index.md', '- [C](c.md)\n- [Sibling](../b/index.md)\n'),
+    file('docs/a/c.md'),
+    file('docs/b/index.md', '- [D](d.md)\n'),
+    file('docs/b/d.md'),
+  ];
+
+  it('leaves sibling-subtree links alone by default', () => {
+    expect(evaluateOkfIndex(files, cfg)).toEqual([]);
+  });
+
+  it('flags an index linking across to another subtree when enabled', () => {
+    expect(messagesWith(files, { noSiblingLinks: true })).toContain(
+      'docs/a/index.md links across to docs/b/index.md; an index must not link outside its own subtree',
+    );
   });
 });
 
