@@ -40,10 +40,13 @@ signal.
 ## Configuration
 
 Per-repo settings live in `.repo-hygiene.yml` under `checks.<name>`. The framework
-understands one key in any check's section — `severity`, which the runner applies
+understands two keys in any check's section: `severity`, which the runner applies
 uniformly to override every finding that check emits (downgrade a whole check to
-`warn` while a backlog is worked off, then flip it back). Every other key is the
-check's own; see each [check page](checks/index.md) for its vocabulary.
+`warn` while a backlog is worked off, then flip it back — or set `error` to enforce
+a check that is only advisory by default); and `enabled`, which when set to `false`
+skips the check entirely — the per-repo opt-out for a default-on check a repo
+cannot satisfy. Every other key is the check's own; see each
+[check page](checks/index.md) for its vocabulary.
 
 ## How the pieces fit
 

@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: The distribution contract
-description: Why a repo-hygiene check must be safe with no config, how the defaultOn flag drives the default-on set, and the package-pins call.
+description: Why a repo-hygiene check must be safe with no config, how the defaultOn flag drives the default-on set, how default severity and the enabled:false opt-out work, and the package-pins call.
 tags: [hygiene, ci, distribution]
 ---
 
@@ -24,6 +24,22 @@ set — so the default is _computed_ from the flags, never hardcoded in the YAML
 a newly-added default-on check auto-joins every consumer on the next Dependabot
 bump with no edit there. Opinionated checks leave `defaultOn` unset and are opt-in
 per repo (named explicitly in the caller's `checks` input).
+
+## Default severity and the opt-out
+
+Being default-on does not mean a check must _block_ every consumer. A check may
+declare a `defaultSeverity` of `warn` (`src/types.ts`), so its findings surface
+everywhere but exit `0` until a repo opts into enforcement with `severity: error`.
+`okf`, `okf-index`, and `md-pairing` ship this way — on by default but advisory,
+because a repo that has not adopted OKF or the `CLAUDE.md`/`AGENTS.md` convention
+should be nudged, not broken, on arrival. `conflict-markers`, `action-pins`, and
+`docs-links` stay at `error` (a leftover marker, an unpinned action, or a broken
+link is never intentional), and `file-caps` ships warn-tier shared defaults.
+
+Every default-on check is **opt-out** per repo: set `enabled: false` in its
+`.repo-hygiene.yml` section and the runner skips it entirely — the escape hatch for
+a check a repo genuinely cannot satisfy, without re-enumerating the whole `checks`
+list (which would forfeit auto-join of future default-on checks).
 
 ## The `package-pins` call
 

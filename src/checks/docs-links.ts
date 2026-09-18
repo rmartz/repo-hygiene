@@ -170,6 +170,9 @@ export const docsLinksCheck: Check = {
   name: NAME,
   description:
     'Intra-repo relative Markdown links in docs pages must resolve to a file on disk; optionally validate #anchors.',
+  // Default-on: a broken intra-repo link is never intentional, and the check
+  // no-ops on a repo with no docs/ — safe to run on an arbitrary repo unconfigured.
+  defaultOn: true,
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     const exists = await repoPathExists(ctx.mode, { cwd: ctx.cwd });

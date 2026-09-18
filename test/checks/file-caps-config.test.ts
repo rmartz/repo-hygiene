@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseByteSize, parseFileCapsConfig } from '../../src/checks/file-caps-config.js';
+import {
+  DEFAULT_OVERRIDES,
+  parseByteSize,
+  parseFileCapsConfig,
+  resolveFileCapsOverrides,
+} from '../../src/checks/file-caps-config.js';
 
 describe('parseByteSize', () => {
   it('passes a raw non-negative integer through as bytes', () => {
@@ -63,5 +68,27 @@ describe('parseFileCapsConfig', () => {
     expect(() =>
       parseFileCapsConfig({ overrides: [{ glob: '*', lines: { error: '480' } }] }),
     ).toThrow(/line threshold/);
+  });
+});
+
+describe('resolveFileCapsOverrides', () => {
+  it('applies the shared warn-tier defaults when a repo configures nothing', () => {
+    const entries = resolveFileCapsOverrides({});
+    expect(entries).toEqual(DEFAULT_OVERRIDES);
+  });
+
+  it('ships defaults as advisory only — no error tier', () => {
+    for (const entry of DEFAULT_OVERRIDES) {
+      expect(entry.lines?.error).toBeUndefined();
+      expect(entry.bytes?.error).toBeUndefined();
+    }
+  });
+
+  it("puts a repo's overrides ahead of the shared defaults (first-match-wins)", () => {
+    const entries = resolveFileCapsOverrides({
+      overrides: [{ glob: 'src/**/*.ts', lines: { error: 500 } }],
+    });
+    expect(entries[0]).toEqual({ glob: 'src/**/*.ts', lines: { error: 500 } });
+    expect(entries.slice(1)).toEqual(DEFAULT_OVERRIDES);
   });
 });

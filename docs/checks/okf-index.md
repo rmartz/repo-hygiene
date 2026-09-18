@@ -1,14 +1,18 @@
 ---
 type: Library
 title: The okf-index check
-description: Validates that an OKF docs bundle is fully navigable via index.md links and that index pages carry no frontmatter; opt-in.
+description: Validates that an OKF docs bundle is fully navigable via index.md links and that index pages carry no frontmatter; default-on at warn severity.
 resource: src/checks/okf-index.ts
 tags: [hygiene, ci, checks, docs, okf]
 ---
 
 # `okf-index`
 
-**Default:** opt-in · **Config:** `roots`, `indexName`
+**Default:** on (warn) · **Config:** `roots`, `indexName` · **Opt out:** `enabled: false`
+
+Default-on at `warn` severity (like [`okf`](okf.md)): navigability findings surface
+everywhere without failing a repo whose `docs/` is not yet an OKF bundle. Enforce
+with `severity: error`, or turn it off with `enabled: false`.
 
 The docs-bundle navigability invariant that [`okf`](okf.md) (frontmatter) does not
 cover. Every content page must be reachable from a root `index.md` by following

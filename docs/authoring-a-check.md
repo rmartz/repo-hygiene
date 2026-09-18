@@ -150,6 +150,12 @@ config-free bar but not this one (a repo with `^3` ranges would break), so it st
 opt-in — being config-free is necessary but not sufficient for `defaultOn`. See
 [the distribution contract](distribution-contract.md) for the full rationale.
 
+Two levers soften "default-on" for an opinionated check: set `defaultSeverity:
+'warn'` on the check so it surfaces findings everywhere but does not fail CI until
+a repo sets `severity: error`; and every default-on check is opt-out per repo via
+`enabled: false`. A check that is only _sometimes_ correct is a better fit for
+`defaultOn: true` + `defaultSeverity: 'warn'` than for staying opt-in.
+
 ## 5. Test it (`test/checks/*.test.ts`)
 
 Vitest, one file per check. There are two complementary layers:

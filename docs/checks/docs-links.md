@@ -1,14 +1,14 @@
 ---
 type: Library
 title: The docs-links check
-description: Flags intra-repo Markdown links in docs pages whose target file — or, optionally, whose #anchor — does not exist; opt-in.
+description: Flags intra-repo Markdown links in docs pages whose target file — or, optionally, whose #anchor — does not exist; on by default.
 resource: src/checks/docs-links.ts
 tags: [hygiene, ci, checks, docs]
 ---
 
 # `docs-links`
 
-**Default:** opt-in · **Config:** `roots`, `exempt`, `anchors`, `anchorExempt`
+**Default:** on · **Config:** `roots`, `exempt`, `anchors`, `anchorExempt` · **Opt out:** `enabled: false`
 
 Intra-repo Markdown link integrity: every relative Markdown link in a docs page
 must resolve to a file that exists, and — when `anchors` is enabled — its
