@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.1.0...repo-hygiene-v1.2.0) (2026-09-18)
+
+
+### Features
+
+* **okf-index:** enforce nested index links ([#32](https://github.com/rmartz/repo-hygiene/issues/32)) ([eaeb031](https://github.com/rmartz/repo-hygiene/commit/eaeb031fe008c9dc5c356e4fecc828419472480b))
+
 ## [1.1.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.0.1...repo-hygiene-v1.1.0) (2026-09-16)
 
 
