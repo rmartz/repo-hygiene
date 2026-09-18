@@ -24,9 +24,8 @@ const HTML_ID_RE = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 
 /** Reduce a raw heading line to its rendered text: link text, no HTML tags. */
 function headingText(raw: string): string {
-  return raw
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // [text](url) / ![alt](url) → text/alt
-    .replace(/<[^>]*>?/g, ''); // codeql[js/incomplete-sanitization] output used for slug comparison only, never rendered as HTML; slugify strips all non-letter/number chars
+  // codeql[js/incomplete-sanitization] - output used for slug comparison only, never rendered as HTML; slugify strips all non-letter/number chars
+  return raw.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]*>?/g, '');
 }
 
 /**
