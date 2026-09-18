@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v2.0.0...repo-hygiene-v3.0.0) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **docs-links:** validate anchor fragments (same-doc and cross-doc) ([#31](https://github.com/rmartz/repo-hygiene/issues/31))
+
+### Features
+
+* **docs-links:** validate anchor fragments (same-doc and cross-doc) ([#31](https://github.com/rmartz/repo-hygiene/issues/31)) ([7a8e843](https://github.com/rmartz/repo-hygiene/commit/7a8e8434d36b30bfc99646aef473839991e8d3a0))
+* **okf:** support OKF's open type vocabulary and reserved log.md ([#39](https://github.com/rmartz/repo-hygiene/issues/39)) ([540a1f5](https://github.com/rmartz/repo-hygiene/commit/540a1f58bebcd170843f369778b7f1c9be56cc88))
+
 ## [2.0.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.2.0...repo-hygiene-v2.0.0) (2026-09-18)
 
 
