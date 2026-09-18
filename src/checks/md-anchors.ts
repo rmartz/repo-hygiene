@@ -26,6 +26,7 @@ const HTML_ID_RE = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 function headingText(raw: string): string {
   return raw
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // [text](url) / ![alt](url) → text/alt
+    // codeql[js/incomplete-sanitization] - output used for slug comparison only, never rendered as HTML; slugify subsequently strips all non-letter/number chars
     .replace(/<[^>]*>?/g, ''); // strip all HTML tags, complete (<b>) and unclosed (<script)
 }
 
