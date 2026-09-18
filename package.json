@@ -1,6 +1,6 @@
 {
   "name": "@rmartz/repo-hygiene",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Low-cost repo-hygiene CI checks (conflict markers, GitHub Actions SHA pins, docs link integrity, file-size caps, and more), distributed via a reusable workflow and kept current by Dependabot.",
   "keywords": [
     "ci",
