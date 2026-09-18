@@ -43,19 +43,47 @@ export function resolveRel(fromDir: string, href: string): string {
 }
 
 /**
- * The intra-repo relative target an href points at (its `#anchor` and any link
- * title stripped), or `null` when the href is not an intra-repo relative path —
- * a pure anchor (`#x`), an external scheme (`http:`, `mailto:`), or an absolute /
- * protocol-relative path (`/x`, `//host`). Anchor *validity* is out of scope
- * (that is neighbouring work); only the file part is returned.
+ * An intra-repo link destination split into its file `path` and `#anchor`
+ * fragment. `path` is `null` for a *same-document* link (`#section`), where the
+ * anchor resolves against the page the link sits in; `anchor` is `null` when the
+ * href carries no fragment. Both are `null` only via the whole result being
+ * `null` (see {@link parseLinkTarget}).
  */
-export function intraRepoTarget(href: string): string | null {
+export interface LinkTarget {
+  /** Intra-repo relative file path, or `null` for a same-document link. */
+  path: string | null;
+  /** The fragment after `#` (without the `#`), or `null` when absent/empty. */
+  anchor: string | null;
+}
+
+/**
+ * Parse an href into its intra-repo file `path` and `#anchor`, or `null` when the
+ * href is not an intra-repo target worth resolving on disk — an external scheme
+ * (`http:`, `mailto:`), an absolute / protocol-relative path (`/x`, `//host`), or
+ * an empty destination. A pure anchor (`#x`) yields `{ path: null, anchor }` (a
+ * same-document link); a path with no fragment yields `{ path, anchor: null }`.
+ */
+export function parseLinkTarget(href: string): LinkTarget | null {
   // A CommonMark destination ends at the first whitespace; an optional "title"
   // may follow (`[x](dest "title")`), so keep only the first token.
   const dest = href.trim().split(/\s+/)[0] ?? '';
-  const path = (dest.split('#')[0] ?? '').trim();
-  if (!path) return null; // pure anchor or empty
+  if (!dest) return null;
+  const hash = dest.indexOf('#');
+  const path = (hash === -1 ? dest : dest.slice(0, hash)).trim();
+  const rawAnchor = hash === -1 ? '' : dest.slice(hash + 1).trim();
+  const anchor = rawAnchor === '' ? null : rawAnchor;
+  if (path === '') return anchor === null ? null : { path: null, anchor }; // same-document
   if (/^[a-z][a-z0-9+.-]*:/i.test(path)) return null; // external scheme
   if (path.startsWith('/')) return null; // absolute or protocol-relative
-  return path;
+  return { path, anchor };
+}
+
+/**
+ * The intra-repo relative target an href points at (its `#anchor` and any link
+ * title stripped), or `null` when the href is not an intra-repo relative *file*
+ * path — a pure anchor (`#x`), an external scheme, or an absolute path. A thin
+ * shim over {@link parseLinkTarget} that keeps only the file part.
+ */
+export function intraRepoTarget(href: string): string | null {
+  return parseLinkTarget(href)?.path ?? null;
 }

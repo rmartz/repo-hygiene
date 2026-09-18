@@ -11,6 +11,9 @@ checks:
   docs-links:
     roots: [docs]
     exempt: []
+    # Dogfood anchor validation on our own docs bundle.
+    anchors: true
+    anchorExempt: []
   # OKF docs-frontmatter conformance. This repo documents code, so it uses the
   # curated type vocabulary; `Reference` (concept/guide pages like okf-format.md)
   # joins the defaults and is resource-exempt alongside `Design`.
