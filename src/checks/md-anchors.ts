@@ -26,8 +26,7 @@ const HTML_ID_RE = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 function headingText(raw: string): string {
   return raw
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // [text](url) / ![alt](url) → text/alt
-    .replace(/<[^>]+>/g, '') // complete inline HTML tags
-    .replace(/<[^>]*/g, ''); // unclosed/incomplete HTML tags (e.g. <script with no closing >)
+    .replace(/<[^>]*>?/g, ''); // strip all HTML tags, complete (<b>) and unclosed (<script)
 }
 
 /**
