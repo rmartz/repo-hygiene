@@ -30,7 +30,7 @@ on:
         description: '@rmartz/repo-hygiene version to install (pinned to this release).'
         type: string
         required: false
-        default: 1.2.0 # x-release-please-version
+        default: 2.0.0 # x-release-please-version
       node-version:
         description: Node.js version to run the checks under.
         type: string

@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.2.0...repo-hygiene-v2.0.0) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **okf-index:** configurable index link-direction strictness ([#35](https://github.com/rmartz/repo-hygiene/issues/35))
+
+### Features
+
+* **okf-index:** configurable index link-direction strictness ([#35](https://github.com/rmartz/repo-hygiene/issues/35)) ([b3c4f14](https://github.com/rmartz/repo-hygiene/commit/b3c4f142b05b1d890ad1353fed37c70dcc8ccca7))
+
 ## [1.2.0](https://github.com/rmartz/repo-hygiene/compare/repo-hygiene-v1.1.0...repo-hygiene-v1.2.0) (2026-09-18)
 
 
