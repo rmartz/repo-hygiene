@@ -23,9 +23,8 @@ checks:
     severity: error
     types: [Skill, Script, Library, Design, Reference]
     resourceExemptTypes: [Design, Reference]
-    # index.md pages carry no frontmatter (the okf-index rule), so each
-    # directory's index.md is exempt from okf's frontmatter requirement.
-    exempt: [docs/index.md, docs/checks/index.md]
+    # OKF-reserved index.md / log.md are skipped automatically, so no exempt
+    # entries are needed for this repo's docs bundle.
   okf-index:
     severity: error
   md-pairing:

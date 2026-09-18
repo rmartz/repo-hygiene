@@ -98,6 +98,40 @@ describe('validateDoc', () => {
       ),
     ).toEqual([]);
   });
+
+  it('accepts any non-empty type under an open vocabulary (types: "*")', () => {
+    const cfg = { ...DEFAULTS, types: '*' as const };
+    expect(
+      validateDoc(
+        'docs/a.md',
+        page({ type: 'Runbook', title: 'x', description: 'y', resource: 'resource.ts' }),
+        cfg,
+        (p) => existsSync(join(dir, p)),
+      ),
+    ).toEqual([]);
+  });
+
+  it('still requires a non-empty type under an open vocabulary', () => {
+    const cfg = { ...DEFAULTS, types: '*' as const };
+    const findings = validateDoc(
+      'docs/a.md',
+      page({ title: 'x', description: 'y', resource: 'resource.ts' }),
+      cfg,
+      (p) => existsSync(join(dir, p)),
+    );
+    expect(findings.map((f) => f.message)).toContain(
+      'type is required and must be a non-empty string',
+    );
+  });
+
+  it('waives the resource requirement for every type with resourceExemptTypes: "*"', () => {
+    const cfg = { ...DEFAULTS, types: '*' as const, resourceExemptTypes: '*' as const };
+    expect(
+      validateDoc('docs/a.md', page({ type: 'Concept', title: 'x', description: 'y' }), cfg, (p) =>
+        existsSync(join(dir, p)),
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe('okfCheck.run', () => {
@@ -128,5 +162,14 @@ describe('okfCheck.run', () => {
     const files = filesOf({ 'guides/bad.md': page({ title: 'x' }) });
     const findings = await okfCheck.run(ctx(files, { roots: ['guides'], exempt: [] }));
     expect(findings.map((f) => f.path)).toContain('guides/bad.md');
+  });
+
+  it('skips OKF-reserved index.md and log.md anywhere they appear', async () => {
+    const files = filesOf({
+      'docs/index.md': page({ type: 'Nope' }), // reserved basename → skipped
+      'docs/checks/index.md': page({ type: 'Nope' }), // reserved in a subdir → skipped
+      'docs/log.md': page({ type: 'Nope' }), // reserved history file → skipped
+    });
+    expect(await okfCheck.run(ctx(files))).toEqual([]);
   });
 });
