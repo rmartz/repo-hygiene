@@ -65,6 +65,53 @@ describe('evaluateOkfIndex — navigability', () => {
   });
 });
 
+describe('evaluateOkfIndex — nesting rule', () => {
+  it('flags an index linking directly to a page one directory down', () => {
+    const files = [
+      file('docs/index.md', '- [Build](scripts/build.md)\n- [Scripts](scripts/index.md)\n'),
+      file('docs/scripts/index.md', '- [Build](build.md)\n'),
+      file('docs/scripts/build.md'),
+    ];
+    expect(messages(files)).toContain(
+      'docs/index.md links directly to docs/scripts/build.md; link its subdirectory index.md instead',
+    );
+  });
+
+  it('flags an index linking to a file more than one directory below', () => {
+    const files = [
+      file('docs/index.md', '- [Deep](a/b/deep.md)\n- [A](a/index.md)\n'),
+      file('docs/a/index.md', '- [B](b/index.md)\n'),
+      file('docs/a/b/index.md', '- [Deep](deep.md)\n'),
+      file('docs/a/b/deep.md'),
+    ];
+    expect(messages(files)).toContain(
+      'docs/index.md links to docs/a/b/deep.md, which is more than one directory below; nest it through subdirectory index.md files',
+    );
+  });
+
+  it('allows same-directory pages and direct child indexes', () => {
+    const files = [
+      file('docs/index.md', '- [Guide](guide.md)\n- [Scripts](scripts/index.md)\n'),
+      file('docs/guide.md'),
+      file('docs/scripts/index.md', '- [Build](build.md)\n'),
+      file('docs/scripts/build.md'),
+    ];
+    expect(evaluateOkfIndex(files, cfg)).toEqual([]);
+  });
+
+  it('does not flag upward or sibling-subtree links from an index', () => {
+    const files = [
+      file('docs/index.md', '- [A](a/index.md)\n- [B](b/index.md)\n'),
+      file('docs/a/index.md', '- [Up](../index.md)\n- [Sibling](../b/index.md)\n- [C](c.md)\n'),
+      file('docs/a/c.md'),
+      file('docs/b/index.md', '- [D](d.md)\n'),
+      file('docs/b/d.md'),
+    ];
+    // ../index.md and ../b/index.md from docs/a/index.md are up/sibling — not flagged.
+    expect(evaluateOkfIndex(files, cfg)).toEqual([]);
+  });
+});
+
 describe('evaluateOkfIndex — index frontmatter rule', () => {
   const nav = '- [P](p.md)\n';
   const withPage = (indexContent: string): DocFile[] => [

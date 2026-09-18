@@ -23,6 +23,11 @@ links.
 - a directory that holds any `.md` but has no `index.md`.
 - a content page not linked from its directory's `index.md`.
 - a documented sub-directory whose `index.md` is not linked from its parent's.
+- an `index.md` that reaches past its immediate children — linking directly to a
+  page one directory down (link that directory's `index.md` instead), or to any
+  file more than one directory below. An index may only point downward to a file
+  in its own directory or to a direct child directory's `index.md`; upward
+  (`../index.md`) and sibling-subtree links are out of scope.
 - an `index.md` that carries frontmatter — except a bundle-root `index.md`, which
   may carry only `okf_version` (any other key is flagged) — or a malformed
   frontmatter block.

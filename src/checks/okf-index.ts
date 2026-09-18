@@ -9,7 +9,11 @@ import { resolveRel, scanLinks } from './md-links.js';
  * from a root `index.md` by following links: a directory that holds any `.md`
  * must have an `index.md`, every content page in it must be linked from that
  * `index.md`, and every documented sub-directory's `index.md` must be linked
- * from its parent's. `index.md` pages carry no frontmatter, except a bundle-root
+ * from its parent's. Indexes must also stay *nested*: an index may only point
+ * downward to a file in its own directory or to a direct child directory's
+ * `index.md` — never straight to a page one directory down (link that
+ * directory's index instead), and never to anything more than one directory
+ * below. `index.md` pages carry no frontmatter, except a bundle-root
  * `index.md` which may carry only `okf_version`. Ported from
  * firebase-nextjs-template's `validate-docs-index.mjs` + the `validateIndex` half
  * of `validate-docs.mjs`.
@@ -67,6 +71,30 @@ function linkedMdTargets(indexPath: string, content: string): Set<string> {
     targets.add(resolveRel(fromDir, bare));
   }
   return targets;
+}
+
+/**
+ * Nesting rule: an index may only point *downward* to a file in its own
+ * directory or to a direct child directory's index. It must not reach past that
+ * — no linking straight to a page one directory down (link that directory's
+ * index instead), and no linking to anything more than one directory below. A
+ * message for such an over-reaching downward link, or null when the target is
+ * allowed or not downward at all (up/sibling links are out of scope).
+ */
+function nestingViolation(indexPath: string, target: string, indexName: string): string | null {
+  const indexDir = dirOf(indexPath);
+  let rest: string | null;
+  if (indexDir === '') rest = target;
+  else if (target.startsWith(`${indexDir}/`)) rest = target.slice(indexDir.length + 1);
+  else rest = null;
+  if (rest === null) return null; // up or sibling — downward-only rule doesn't apply
+  const depth = rest.split('/').length - 1;
+  if (depth === 0) return null; // same directory — allowed
+  if (depth === 1) {
+    if (baseOf(rest) === indexName) return null; // direct child index — allowed
+    return `${indexPath} links directly to ${target}; link its subdirectory ${indexName} instead`;
+  }
+  return `${indexPath} links to ${target}, which is more than one directory below; nest it through subdirectory ${indexName} files`;
 }
 
 /** Nearest documented ancestor of `dir` within its root, or undefined at a root. */
@@ -141,6 +169,10 @@ export function evaluateOkfIndex(files: DocFile[], cfg: OkfIndexConfig): Finding
     const linked = linkedMdTargets(indexPath, content.get(indexPath) ?? '');
     for (const page of (contentByDir.get(dir) ?? []).sort()) {
       if (!linked.has(page)) push(page, `${page} is not linked from ${indexPath}`);
+    }
+    for (const target of [...linked].sort()) {
+      const violation = nestingViolation(indexPath, target, cfg.indexName);
+      if (violation) push(indexPath, violation);
     }
 
     const isBundleRoot = cfg.roots.some((r) => indexPath === joinDir(r, cfg.indexName));
