@@ -100,17 +100,17 @@ Per-repo settings live under `checks.<name>`. The framework understands one key
 everywhere — `severity` (see the ramp below) — and every other key is defined by
 the owning check:
 
-| Check              | Default   | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                             |
-| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `conflict-markers` | on        | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                 |
-| `action-pins`      | on        | none                                                                                                                                                                                       |
-| `package-pins`     | opt-in    | none                                                                                                                                                                                       |
-| `docs-links`       | on        | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (also validate `#fragment` targets, bool); `anchorExempt`                                   |
-| `md-pairing`       | on (warn) | `wrapper` (require each `CLAUDE.md` be a bare import line; `true` → `@AGENTS.md`, or a custom string)                                                                                      |
-| `okf`              | on (warn) | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` for none). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
-| `okf-index`        | on (warn) | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                  |
-| `file-caps`        | on        | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes)                                                                                      |
-| _(any check)_      |           | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                  |
+| Check              | Default   | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                       |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `conflict-markers` | on        | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                           |
+| `action-pins`      | on        | none                                                                                                                                                                                                                                 |
+| `package-pins`     | opt-in    | none                                                                                                                                                                                                                                 |
+| `docs-links`       | on        | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (also validate `#fragment` targets, bool); `anchorExempt`                                                                             |
+| `md-pairing`       | on (warn) | `wrapper` (require each `CLAUDE.md` be a bare import line; `true` → `@AGENTS.md`, or a custom string)                                                                                                                                |
+| `okf`              | on (warn) | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` to exempt all types — disables resource validation). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
+| `okf-index`        | on (warn) | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                                                            |
+| `file-caps`        | on        | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes)                                                                                                                                |
+| _(any check)_      |           | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                                                            |
 
 That table is the **complete check roster** — the names you can pass in `checks:`.
 The `src/checks/` directory also contains `md-links` and `okf-fields`, but these
