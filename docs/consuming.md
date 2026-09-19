@@ -12,6 +12,21 @@ repository, choose and configure its checks, and confirm the setup works. For
 the check registry and how a new check is authored, see the
 [checks reference](checks/index.md) and [authoring a check](authoring-a-check.md).
 
+## Local vs CI: what you actually need
+
+**CI-only is the baseline.** Adopting repo-hygiene requires only the caller
+workflow and Dependabot entry in section 1 — the checks run in the reusable
+workflow on GitHub. You do **not** need a local `@rmartz/repo-hygiene`
+devDependency, `.npmrc` `@rmartz` auth, `package.json` hygiene scripts, or a
+pre-commit/husky hook.
+
+**A local install is an optional enhancement** for fast feedback while you edit —
+running the checks (or `--staged` over just your changed files) before you push,
+and ratcheting the `file-caps` baseline (section 4). It never changes what CI
+enforces. If you want it, add `@rmartz/repo-hygiene` as a devDependency (pointing
+npm at the `@rmartz` scope on `npm.pkg.github.com`) and wire your own scripts or
+hook; otherwise skip straight to section 1 and stay CI-only.
+
 ## 1. Add the caller workflow and Dependabot entry
 
 You add two small files once; Dependabot maintains the pin from then on. Both are
@@ -55,19 +70,23 @@ permission above is all the workflow needs. No per-repo PAT.
 The `checks` workflow input decides which checks run. Its behavior changed in
 1.0.0 to derive the default from the package's registry:
 
-- **Omit `checks` entirely** → the reusable workflow runs the **default-on** set
-  (currently `conflict-markers` and `action-pins`), and a newly-added default-on
-  check **auto-joins** on your next Dependabot bump with no edit to your caller.
-  This is the recommended default.
+- **Omit `checks` entirely** → the reusable workflow runs the **default-on** set —
+  currently every check **except** `package-pins` (`conflict-markers`,
+  `action-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) —
+  and a newly-added default-on check **auto-joins** on your next Dependabot bump
+  with no edit to your caller. This is the recommended default. Three of them
+  (`md-pairing`, `okf`, `okf-index`) default to `warn` severity, so they report
+  without failing CI until you opt into `severity: error` (section 3).
 - **Set `checks: <names>`** → runs **exactly** those checks. This pins the set:
   you manage the list, and you forfeit auto-join for future default-on checks. To
-  add an opt-in check, list it **alongside** the defaults you still want.
+  add the opt-in `package-pins` (or drop a default-on check), name the full set
+  you want.
 
 ```yaml
 uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z
 with:
-  # defaults (conflict-markers, action-pins) + two opt-in checks:
-  checks: conflict-markers action-pins docs-links okf
+  # pin an explicit set: the default-on checks you want + the opt-in package-pins
+  checks: conflict-markers action-pins docs-links md-pairing okf okf-index file-caps package-pins
   config: .repo-hygiene.yml
 ```
 
@@ -81,17 +100,29 @@ Per-repo settings live under `checks.<name>`. The framework understands one key
 everywhere — `severity` (see the ramp below) — and every other key is defined by
 the owning check:
 
-| Check              | Default | `.repo-hygiene.yml` keys under `checks.<name>`                                                        |
-| ------------------ | ------- | ----------------------------------------------------------------------------------------------------- |
-| `conflict-markers` | on      | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                            |
-| `action-pins`      | on      | none                                                                                                  |
-| `package-pins`     | opt-in  | none                                                                                                  |
-| `docs-links`       | opt-in  | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle)                   |
-| `md-pairing`       | opt-in  | `wrapper` (require each `CLAUDE.md` be a bare import line; `true` → `@AGENTS.md`, or a custom string) |
-| `okf`              | opt-in  | `types`, `roots`, `exempt`, `resourceExemptTypes` (see [okf-format.md](okf-format.md))                |
-| `okf-index`        | opt-in  | `roots` (default `[docs]`); `indexName` (default `index.md`)                                          |
-| `file-caps`        | opt-in  | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes) |
-| _(any check)_      |         | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)             |
+| Check              | Default   | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                       |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `conflict-markers` | on        | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                           |
+| `action-pins`      | on        | none                                                                                                                                                                                                                                 |
+| `package-pins`     | opt-in    | none                                                                                                                                                                                                                                 |
+| `docs-links`       | on        | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (also validate `#fragment` targets, bool); `anchorExempt`                                                                             |
+| `md-pairing`       | on (warn) | `wrapper` (require each `CLAUDE.md` be a bare import line; `true` → `@AGENTS.md`, or a custom string)                                                                                                                                |
+| `okf`              | on (warn) | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` to exempt all types — disables resource validation). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
+| `okf-index`        | on (warn) | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                                                            |
+| `file-caps`        | on        | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes)                                                                                                                                |
+| _(any check)_      |           | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                                                            |
+
+That table is the **complete check roster** — the names you can pass in `checks:`.
+The `src/checks/` directory also contains `md-links` and `okf-fields`, but these
+are internal library modules (link scanning for `docs-links`/`okf-index`, and
+optional-field validation for `okf`), **not** separately selectable checks — do
+not list them in `checks:`.
+
+**Migrating a hand-rolled docs-index validator?** `okf-index` is the centralized
+replacement for a bespoke `validate-docs-index.mjs`-style script: it enforces that
+every docs page is reachable from a root `index.md`. Enable `okf-index` (with your
+`roots`/`indexName`), retire the local script, and — if your bundle links a flat
+root index rather than nested per-directory indexes — set `nestedIndexes: false`.
 
 A representative config:
 
@@ -101,8 +132,9 @@ checks:
   docs-links:
     roots: [docs]
     exempt: []
+    anchors: true # also validate that #fragment link targets resolve
   okf:
-    types: [Skill, Script, Library, Design, Reference]
+    types: [Skill, Script, Library, Design, Reference] # or "*" for an open vocabulary
     resourceExemptTypes: [Design, Reference]
   file-caps:
     overrides:
