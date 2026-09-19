@@ -1,6 +1,14 @@
-# >>> ai-tools managed (ensure-project-config) — do not edit by hand >>>
-# Source of truth: @rmartz/bootstrap golden workflow files. Re-run the
-# /bootstrap skill (ai-ensure-project-config) to re-sync; local edits are lost.
+# Thin caller of the @rmartz/merge-safety reusable workflow (split out of
+# @rmartz/pr-review — see rmartz/merge-safety). A reusable workflow can't declare
+# its own triggers or hold write scopes, so this caller carries the triggers,
+# grants the write permissions, threads the workflow_dispatch `pr` input, and
+# passes `secrets: inherit`; the evaluate/invalidate logic, concurrency, and CLI
+# install all live in the reusable workflow. The `@<sha>` pin is bumped by
+# Dependabot (github-actions ecosystem).
+#
+# THE CHECK-RUN NAME `merge-safety` IS A FLEET CONTRACT — the auto-merge gate keys
+# off a required status check of that exact name. It is posted by the reusable
+# workflow's CLI; do not rename this workflow's check.
 
 name: merge-safety
 
@@ -22,51 +30,9 @@ permissions:
   actions: write
   packages: read
 
-concurrency:
-  group: merge-safety-${{ github.event_name == 'push' && 'invalidate' || github.event.pull_request.number || inputs.pr }}
-  cancel-in-progress: false
-
-env:
-  MERGE_SAFETY_VERSION: 0.4.0
-
 jobs:
-  evaluate:
-    name: Evaluate one PR
-    if: github.event_name != 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      GH_TOKEN: ${{ github.token }}
-      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
-      BASE_REF: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
-          fetch-depth: 0 # merge-base + diffs need full history
-      - name: Install ai-merge-safety
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          printf '@rmartz:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "${NODE_AUTH_TOKEN}" > ~/.npmrc
-          npm install -g "@rmartz/pr-review@${MERGE_SAFETY_VERSION}"
-      # Fetch the PR head as git data so merge-base/diffs resolve — the dispatched
-      # (workflow_dispatch) path checks out the base and would otherwise lack it.
-      - run: git fetch --quiet origin "${BASE_REF}" "pull/${PR_NUMBER}/head"
-      - run: ai-merge-safety evaluate --pr "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --base "origin/${BASE_REF}"
-
-  invalidate:
-    name: Invalidate open PRs (base moved)
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Install ai-merge-safety
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          printf '@rmartz:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "${NODE_AUTH_TOKEN}" > ~/.npmrc
-          npm install -g "@rmartz/pr-review@${MERGE_SAFETY_VERSION}"
-      - run: ai-merge-safety invalidate --repo "${GITHUB_REPOSITORY}"
+  merge-safety:
+    uses: rmartz/merge-safety/.github/workflows/merge-safety.yml@db145fb8c20164185eb9e1a1c237dc4d9085c69f # v0.1.0
+    with:
+      pr: ${{ inputs.pr }}
+    secrets: inherit
