@@ -29,6 +29,10 @@ describe('slugify', () => {
     expect(slugify('[<em>text</em>](url)')).toBe('text');
     expect(slugify('See [the <code>run</code> API](run.md)')).toBe('see-the-run-api');
   });
+
+  it('strips a malformed doubled-bracket tag completely (fixpoint)', () => {
+    expect(slugify('x <<b>> y')).toBe('x--y');
+  });
 });
 
 describe('collectAnchors', () => {
