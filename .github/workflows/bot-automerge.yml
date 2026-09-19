@@ -1,0 +1,28 @@
+# Thin caller of the @rmartz/bot-automerge reusable workflow (extracted from the
+# ai-tools golden auto-merge, see rmartz/bot-automerge). It enables GitHub-native
+# auto-merge for trustworthy bot PRs — Dependabot patch/minor bumps and
+# release-please release PRs — gated on the required checks (including
+# merge-safety), so nothing merges ahead of CI. Replaces the old inline
+# dependabot-auto-merge.yml. The `@<sha>` pin is bumped by Dependabot.
+#
+# A reusable workflow can't declare its own triggers or hold write scopes, so
+# this caller carries the trigger and grants the write permissions; the
+# classification logic, concurrency, and CLI install live in the reusable
+# workflow. `secrets: inherit` threads a RELEASE_PLEASE_PAT (if set) so a merged
+# release PR re-triggers release.yml; it falls back to github.token otherwise.
+
+name: bot-automerge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: read
+
+jobs:
+  bot-automerge:
+    uses: rmartz/bot-automerge/.github/workflows/bot-automerge.yml@139f4ce609c2dfe65f1e090c00f17204bfce1b3e # v0.1.1
+    secrets: inherit
