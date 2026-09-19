@@ -22,9 +22,19 @@ const SETEXT_RE = /^ {0,3}(=+|-+)\s*$/;
 // Explicit anchors GitHub honours from raw HTML: `id`/`name` on any tag.
 const HTML_ID_RE = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 
-/** Reduce a raw heading line to its rendered text: link text, no HTML tags. */
+/**
+ * Reduce a raw heading line to its rendered text: link text, no HTML tags.
+ *
+ * Two explicit passes with two distinct purposes: pass 1 unwraps
+ * `[text](url)` links to their text, then pass 2 strips any HTML tags from the
+ * result. A single combined pass mishandles a link whose *text* contains HTML
+ * (e.g. `[<em>x</em>](url)`): the link alternative captures `<em>x</em>` as the
+ * replacement, and — since replacement output is not re-scanned — the tags
+ * survive, yielding `emxem` instead of `x`.
+ */
 function headingText(raw: string): string {
-  return raw.replace(/!?\[([^\]]*)\]\([^)]*\)|<[^>]*>?/g, '$1');
+  const linkText = raw.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
+  return linkText.replace(/<[^>]*>?/g, '');
 }
 
 /**
