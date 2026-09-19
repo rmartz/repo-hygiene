@@ -101,9 +101,12 @@ names to restrict the run, `--config <path>` to point at a config, and
 
 ## Releases
 
-Versioned by release-please. Merging its release PR tags the release and
-publishes the package to GitHub Packages (public); the version installed by the
-reusable workflow is bumped in lockstep via release-please `extra-files`.
+Versioned by [semantic-release](.releaserc.json). Every push to `main` with a
+releasable conventional commit (`feat`/`fix`/…) publishes the `@rmartz/repo-hygiene`
+CLI to GitHub Packages (public), tags `v<version>`, and cuts a GitHub Release — no
+release PR. The reusable workflow that installs this CLI is moving to the separate
+[`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action) repo
+(see [#45](https://github.com/rmartz/repo-hygiene/issues/45)).
 
 ---
 
