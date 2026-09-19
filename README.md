@@ -101,9 +101,11 @@ names to restrict the run, `--config <path>` to point at a config, and
 
 ## Releases
 
-Versioned by release-please. Merging its release PR tags the release and
-publishes the package to GitHub Packages (public); the version installed by the
-reusable workflow is bumped in lockstep via release-please `extra-files`.
+Versioned by [semantic-release](.releaserc.json). Every push to `main` with a
+releasable conventional commit (`feat`/`fix`/…) publishes the package to GitHub
+Packages (public), tags `v<version>`, and cuts a GitHub Release — no release PR.
+The version the reusable workflow installs is bumped in lockstep
+(`scripts/set-hygiene-version.mjs`) and committed into the release tag.
 
 ---
 

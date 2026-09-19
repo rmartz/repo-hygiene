@@ -98,11 +98,15 @@ default-safety bar is strict.
   before building.
 - **PR titles must be Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`,
   …). The repo squash-merges using the **PR title**, so the PR title is the only
-  conventional subject that reaches `main` — a non-conventional title makes
-  release-please skip the release.
-- **Releases are automated** via release-please: merging its release PR tags the
-  version and publishes to GitHub Packages (public); the version installed by
-  `hygiene.yml` is bumped in lockstep via `extra-files`.
+  conventional subject that reaches `main` — a non-conventional title yields no
+  release, and a `feat`/`fix` is what triggers one.
+- **Releases are automated** via [semantic-release](.releaserc.json): every push
+  to `main` with a releasable commit publishes `@rmartz/repo-hygiene` to GitHub
+  Packages (public), tags `v<version>`, and cuts a GitHub Release — no release PR.
+  The version `hygiene.yml` installs is bumped in lockstep by
+  `scripts/set-hygiene-version.mjs` and committed into the release tag, so a
+  pinned ref stays reproducible. The version-sync commit is pushed to protected
+  `main` with the `RELEASE_TOKEN` PAT secret (contents:write).
 
 ## Agent directive files
 

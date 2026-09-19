@@ -10,7 +10,8 @@ name: Repo Hygiene (reusable)
 # Dependabot's github-actions ecosystem bumps that <sha> pin via PRs, so updates
 # — including newly-added checks — propagate with no per-repo YAML edits. The
 # @rmartz/repo-hygiene version this workflow installs is bumped in lockstep with
-# each release (release-please extra-files), so a given pinned ref is fully
+# each release (semantic-release rewrites the `# x-release-version` default below
+# and commits it into the release tag), so a given pinned ref is fully
 # reproducible.
 
 on:
@@ -30,7 +31,7 @@ on:
         description: '@rmartz/repo-hygiene version to install (pinned to this release).'
         type: string
         required: false
-        default: 3.0.0 # x-release-please-version
+        default: 3.0.0 # x-release-version
       node-version:
         description: Node.js version to run the checks under.
         type: string
