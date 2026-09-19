@@ -22,9 +22,33 @@ const SETEXT_RE = /^ {0,3}(=+|-+)\s*$/;
 // Explicit anchors GitHub honours from raw HTML: `id`/`name` on any tag.
 const HTML_ID_RE = /\b(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 
-/** Reduce a raw heading line to its rendered text: link text, no HTML tags. */
+/** Strip HTML tags from `s` to a fixpoint (repeat until the string is stable). */
+function stripHtmlTags(s: string): string {
+  let out = s;
+  let prev: string;
+  do {
+    prev = out;
+    out = out.replace(/<[^>]*>?/g, '');
+  } while (out !== prev);
+  return out;
+}
+
+/**
+ * Reduce a raw heading line to its rendered text: link text, no HTML tags.
+ *
+ * Two explicit passes with two distinct purposes: pass 1 unwraps
+ * `[text](url)` links to their text, then pass 2 strips any HTML tags from the
+ * result. A single combined pass mishandles a link whose *text* contains HTML
+ * (e.g. `[<em>x</em>](url)`): the link alternative captures `<em>x</em>` as the
+ * replacement, and — since replacement output is not re-scanned — the tags
+ * survive, yielding `emxem` instead of `x`. The tag strip loops to a fixpoint so
+ * a single removal can't leave a tag reconstructed from its neighbours (e.g.
+ * `<<b>>`) — which also clears CodeQL's incomplete-sanitization rule; the output
+ * is only ever slugified for anchor comparison, never rendered as HTML.
+ */
 function headingText(raw: string): string {
-  return raw.replace(/!?\[([^\]]*)\]\([^)]*\)|<[^>]*>?/g, '$1');
+  const linkText = raw.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
+  return stripHtmlTags(linkText);
 }
 
 /**
