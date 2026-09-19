@@ -22,6 +22,17 @@ describe('slugify', () => {
   it('drops emoji (leaving the surrounding spaces, as GitHub does) and HTML tags', () => {
     expect(slugify('Ship it 🚀 <sup>1</sup>')).toBe('ship-it--1');
   });
+
+  it('strips HTML tags nested inside a link text (not just around it)', () => {
+    // Regression (#37): a single-pass unwrap left the link-text HTML intact,
+    // yielding `emtextem`. Link text is `text`, so the slug must be `text`.
+    expect(slugify('[<em>text</em>](url)')).toBe('text');
+    expect(slugify('See [the <code>run</code> API](run.md)')).toBe('see-the-run-api');
+  });
+
+  it('strips a malformed doubled-bracket tag completely (fixpoint)', () => {
+    expect(slugify('x <<b>> y')).toBe('x--y');
+  });
 });
 
 describe('collectAnchors', () => {
