@@ -98,11 +98,17 @@ default-safety bar is strict.
   before building.
 - **PR titles must be Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`,
   …). The repo squash-merges using the **PR title**, so the PR title is the only
-  conventional subject that reaches `main` — a non-conventional title makes
-  release-please skip the release.
-- **Releases are automated** via release-please: merging its release PR tags the
-  version and publishes to GitHub Packages (public); the version installed by
-  `hygiene.yml` is bumped in lockstep via `extra-files`.
+  conventional subject that reaches `main` — a `feat`/`fix` triggers a release, a
+  non-conventional title yields none.
+- **Releases are automated** via [semantic-release](.releaserc.json): every push
+  to `main` with a releasable commit publishes the `@rmartz/repo-hygiene` CLI to
+  GitHub Packages (public), tags `v<version>`, and cuts a GitHub Release — no
+  release PR, no commit-back, no PAT (it only creates tags/releases). See #45 for
+  the split from release-please and why.
+- **The reusable workflow is moving out (#45).** `hygiene.yml` is migrating to the
+  standalone `rmartz/repo-hygiene-action` repo, which keeps its installed CLI
+  version current via Dependabot. This repo is becoming CLI-only; the in-repo
+  `hygiene.yml` is frozen and slated for removal at the cutover.
 
 ## Agent directive files
 

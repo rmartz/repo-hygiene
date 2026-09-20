@@ -8,10 +8,13 @@ name: Repo Hygiene (reusable)
 #       uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha>  # vX.Y.Z
 #
 # Dependabot's github-actions ecosystem bumps that <sha> pin via PRs, so updates
-# — including newly-added checks — propagate with no per-repo YAML edits. The
-# @rmartz/repo-hygiene version this workflow installs is bumped in lockstep with
-# each release (release-please extra-files), so a given pinned ref is fully
-# reproducible.
+# — including newly-added checks — propagate with no per-repo YAML edits.
+#
+# MIGRATION (#45): this reusable workflow is moving to the standalone
+# `rmartz/repo-hygiene-action` repo, which keeps its installed CLI version current
+# via Dependabot. This copy is no longer version-synced by the release pipeline —
+# the `default` below is FROZEN at the last release-please-synced value pending the
+# cutover; consumers migrate to `rmartz/repo-hygiene-action` there.
 
 on:
   workflow_call:
@@ -30,7 +33,7 @@ on:
         description: '@rmartz/repo-hygiene version to install (pinned to this release).'
         type: string
         required: false
-        default: 3.0.0 # x-release-please-version
+        default: 3.0.0 # frozen pending migration to rmartz/repo-hygiene-action (#45)
       node-version:
         description: Node.js version to run the checks under.
         type: string

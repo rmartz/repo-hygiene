@@ -5,7 +5,7 @@ name: Conventional Commits (main)
 # reached `main`. This fails loudly when a subject lands on the default branch
 # without a valid conventional-commit prefix: a squash-merge setting that used the
 # branch commit message instead of the PR title, a direct push, or a squash that
-# dropped the prefix — any of which makes release-please silently skip the release.
+# dropped the prefix — any of which makes semantic-release skip the release.
 # It alerts; it cannot gate (the commit is already merged).
 #
 # Self-managed by this repo (not bootstrap-managed). It mirrors the fleet golden
@@ -54,7 +54,7 @@ jobs:
           if [ "$status" -ne 0 ]; then
             echo
             echo "A commit reached ${GITHUB_REF_NAME:-main} with a non-conventional subject."
-            echo "release-please only releases conventional commits, so it silently skips a"
+            echo "semantic-release only releases conventional commits, so it skips a"
             echo "non-conventional one. Likely cause: a squash merge used the branch commit"
             echo "message instead of the PR title. Set the repo squash-merge default to"
             echo "'PR_TITLE' so PR titles reach main."
