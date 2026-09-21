@@ -40,3 +40,11 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # conventional-changelog-conventionalcommits@10 needs
+      # conventional-changelog-writer@9, but @semantic-release/release-notes-generator
+      # bundles writer@8 — a major bump re-breaks the release at generateNotes (the
+      # PR is green, the release fails post-merge). Pinned to v9 until the
+      # release-notes-generator tooling ships writer@9.
+      - dependency-name: 'conventional-changelog-conventionalcommits'
+        update-types: ['version-update:semver-major']
