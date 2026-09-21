@@ -24,12 +24,15 @@ const FULL_SEMVER_COMMENT = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z
 
 /** Parse the `uses:` value and any trailing `# comment` from one line. */
 export function parseUsesLine(line: string): { uses: string; comment?: string } | null {
-  // Greedy `(.*)$` (not lazy `(.+?)\s*$`) so the trailing-whitespace match is
-  // unambiguous — the lazy form backtracks polynomially on a `uses:` line with
-  // many spaces (ReDoS), and the capture is trimmed here anyway.
-  const m = /^\s*(?:-\s*)?uses:\s*(.*)$/.exec(line);
-  if (!m) return null;
-  let rest = (m[1] ?? '').trim();
+  // Pure string scan (no backtracking regex) so a `uses:` line with a long run
+  // of whitespace is parsed in linear time. The former `^\s*(?:-\s*)?uses:\s*(.*)$`
+  // form tripped CodeQL's polynomial-ReDoS check on the overlapping whitespace
+  // quantifiers around the optional YAML sequence dash. Strip leading whitespace,
+  // an optional `-` list marker and the whitespace after it, then require `uses:`.
+  let rest = line.trimStart();
+  if (rest.startsWith('-')) rest = rest.slice(1).trimStart();
+  if (!rest.startsWith('uses:')) return null;
+  rest = rest.slice('uses:'.length).trim();
   let comment: string | undefined;
   const hash = rest.indexOf('#');
   if (hash !== -1) {
