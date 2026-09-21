@@ -104,7 +104,10 @@ names to restrict the run, `--config <path>` to point at a config, and
 Versioned by [semantic-release](.releaserc.json). Every push to `main` with a
 releasable conventional commit (`feat`/`fix`/…) publishes the `@rmartz/repo-hygiene`
 CLI to GitHub Packages (public), tags `v<version>`, and cuts a GitHub Release — no
-release PR. The reusable workflow that installs this CLI is moving to the separate
+release PR. A `Release dry-run` CI job validates the semantic-release config (that
+the changelog toolchain renders) on every PR, so a broken release setup is caught
+before merge rather than on the post-merge release run. The reusable workflow that
+installs this CLI is moving to the separate
 [`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action) repo
 (see [#45](https://github.com/rmartz/repo-hygiene/issues/45)).
 
