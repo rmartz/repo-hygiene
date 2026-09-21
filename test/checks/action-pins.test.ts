@@ -42,6 +42,15 @@ describe('parseUsesLine', () => {
     expect(parseUsesLine(line)).toBeNull(); // only whitespace after `uses:`
     expect(Date.now() - start).toBeLessThan(1_000);
   });
+
+  it('parses a huge leading whitespace/dash run in linear time (ReDoS regression)', () => {
+    // The old leading `^\s*(?:-\s*)?uses:` form backtracked polynomially on a
+    // long whitespace run around the list dash. The pure string scan is linear.
+    const line = `-${' '.repeat(50_000)}x`; // dash + spaces, never reaches `uses:`
+    const start = Date.now();
+    expect(parseUsesLine(line)).toBeNull();
+    expect(Date.now() - start).toBeLessThan(1_000);
+  });
 });
 
 describe('checkActionRef', () => {
