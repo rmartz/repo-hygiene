@@ -49,7 +49,7 @@ are ordered narrowest-first (first-match-wins):
 
 | Applies to              | Glob                                                                    | `lines` warn | `bytes` warn |
 | ----------------------- | ----------------------------------------------------------------------- | ------------ | ------------ |
-| Agent directive files   | `**/{AGENTS,CLAUDE}.md`                                                 | 200          | 32 KB        |
+| Agent directive files   | `**/{AGENTS,CLAUDE}.md`, `**/.cursorrules`, `**/.cursor/rules/**/*.mdc` | 200          | 32 KB        |
 | Test files (JS/TS)      | `**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}`                      | 1200         | 128 KB       |
 | Test files (Go/Py/Ruby) | `**/*_{test,spec}.{go,py,rb}`, `**/test_*.py`                           | 1200         | 128 KB       |
 | Code under a test dir   | `**/{__tests__,test,tests,spec,specs}/**/*.{…code…}`                    | 1200         | 128 KB       |
@@ -57,9 +57,10 @@ are ordered narrowest-first (first-match-wins):
 | Markdown / docs         | `**/*.md`                                                               | 1000         | 128 KB       |
 
 Two of these are deliberate departures from the generic code/Markdown caps:
-**agent directive files** (`AGENTS.md` / `CLAUDE.md`) get a _tighter_ cap because a
-directive file only earns its keep if the model actually reads it — Claude and
-Cursor guidance both favor short, focused instruction files; and **test files** get
+**agent directive files** (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
+and `.cursor/rules/*.mdc`) get a _tighter_ cap because a directive file only earns
+its keep if the model actually reads it — Claude and Cursor guidance both favor
+short, focused instruction files; and **test files** get
 a _wider_ cap because table-driven cases, fixtures, and exhaustive assertions
 legitimately run longer than production code.
 

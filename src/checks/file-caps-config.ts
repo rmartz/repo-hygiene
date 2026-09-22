@@ -99,10 +99,11 @@ const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,c
  * norms.
  *
  * Order matters: entries are first-match-wins, so the narrower globs come first.
- *   1. Agent directive files (`AGENTS.md` / `CLAUDE.md`) — a *tighter* 200-line /
- *      32 KB cap. Directive files earn their keep only if the model actually reads
- *      them; Claude and Cursor guidance both push toward short, focused instruction
- *      files, so the default nudges long ones toward being trimmed or split.
+ *   1. Agent directive files (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
+ *      and `.cursor/rules/*.mdc`) — a *tighter* 200-line / 32 KB cap. Directive
+ *      files earn their keep only if the model actually reads them; Claude and
+ *      Cursor guidance both push toward short, focused instruction files, so the
+ *      default nudges long ones toward being trimmed or split.
  *   2. Test files — a *wider* 1200-line / 128 KB cap. Table-driven cases, fixtures,
  *      and exhaustive assertions legitimately run longer than production code, so a
  *      test file should not warn at the production threshold.
@@ -111,7 +112,10 @@ const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,c
  */
 export const DEFAULT_OVERRIDES: OverrideEntry[] = [
   // Agent directive files: tighter than plain Markdown, kept short and focused.
+  // Covers AGENTS.md / CLAUDE.md plus Cursor's .cursorrules and .cursor/rules/*.mdc.
   { glob: '**/{AGENTS,CLAUDE}.md', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
+  { glob: '**/.cursorrules', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
+  { glob: '**/.cursor/rules/**/*.mdc', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
   // Test files: wider than production code. Suffix conventions across languages…
   {
     glob: '**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}',
