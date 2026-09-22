@@ -72,15 +72,17 @@ describe('parseFileCapsConfig', () => {
 });
 
 describe('resolveFileCapsOverrides', () => {
-  it('applies the shared warn-tier defaults when a repo configures nothing', () => {
+  it('applies the shared defaults when a repo configures nothing', () => {
     const entries = resolveFileCapsOverrides({});
     expect(entries).toEqual(DEFAULT_OVERRIDES);
   });
 
-  it('ships defaults as advisory only — no error tier', () => {
+  it('ships two-tier defaults — every glob hard-gates with warn below error', () => {
     for (const entry of DEFAULT_OVERRIDES) {
-      expect(entry.lines?.error).toBeUndefined();
-      expect(entry.bytes?.error).toBeUndefined();
+      expect(entry.lines?.error).toBeGreaterThan(0);
+      expect(entry.lines?.warn).toBeLessThan(entry.lines?.error ?? 0);
+      expect(entry.bytes?.error).toBeGreaterThan(0);
+      expect(entry.bytes?.warn).toBeLessThan(entry.bytes?.error ?? 0);
     }
   });
 
@@ -90,5 +92,40 @@ describe('resolveFileCapsOverrides', () => {
     });
     expect(entries[0]).toEqual({ glob: 'src/**/*.ts', lines: { error: 500 } });
     expect(entries.slice(1)).toEqual(DEFAULT_OVERRIDES);
+  });
+
+  it('caps every agent directive file tighter than plain Markdown (error 300 lines / 48 KB)', () => {
+    const directiveGlobs = [
+      '**/{AGENTS,CLAUDE}.md',
+      '**/.cursorrules',
+      '**/.cursor/rules/**/*.mdc',
+    ];
+    for (const glob of directiveGlobs) {
+      const entry = DEFAULT_OVERRIDES.find((e) => e.glob === glob);
+      expect(entry).toEqual({
+        glob,
+        lines: { warn: 200, error: 300 },
+        bytes: { warn: 32 * 1024, error: 48 * 1024 },
+      });
+    }
+  });
+
+  it('gives every test-file default the widest cap (error 1200 lines / 128 KB)', () => {
+    const testGlobs = DEFAULT_OVERRIDES.filter((e) => /test|spec/.test(e.glob));
+    expect(testGlobs.length).toBeGreaterThan(0);
+    for (const entry of testGlobs) {
+      expect(entry.lines).toEqual({ warn: 800, error: 1200 });
+      expect(entry.bytes).toEqual({ warn: 96 * 1024, error: 128 * 1024 });
+    }
+  });
+
+  it('orders the narrower globs before the generic code/Markdown globs (first-match-wins)', () => {
+    const globs = DEFAULT_OVERRIDES.map((e) => e.glob);
+    const agentsIdx = globs.indexOf('**/{AGENTS,CLAUDE}.md');
+    const mdIdx = globs.findIndex((g) => g === '**/*.md');
+    const codeIdx = globs.findIndex((g) => g.startsWith('**/*.{ts,'));
+    const lastTestIdx = globs.map((g) => /test|spec/.test(g)).lastIndexOf(true);
+    expect(agentsIdx).toBeLessThan(mdIdx); // AGENTS/CLAUDE match before plain **/*.md
+    expect(lastTestIdx).toBeLessThan(codeIdx); // test globs match before **/*.{code}
   });
 });

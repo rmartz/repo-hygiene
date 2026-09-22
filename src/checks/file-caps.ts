@@ -134,8 +134,9 @@ async function measureAll(mode: Mode, cwd: string): Promise<FileMetrics[]> {
 export const fileCapsCheck: Check = {
   name: NAME,
   description: 'Per-glob line/byte size caps with a grandfather migration ramp.',
-  // Default-on: ships warn-tier shared defaults (see file-caps-config), so it is
-  // advisory-only until a repo adds its own error caps — safe to run on arrival.
+  // Default-on: ships two-tier shared defaults (see file-caps-config) that
+  // hard-gate on size. Unlike the other default-on checks it can error on arrival;
+  // a consumer grandfathers via the baseline, overrides the cap, or opts out.
   defaultOn: true,
   async run(ctx) {
     const entries = resolveFileCapsOverrides(ctx.settings);

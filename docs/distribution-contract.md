@@ -34,7 +34,21 @@ everywhere but exit `0` until a repo opts into enforcement with `severity: error
 because a repo that has not adopted OKF or the `CLAUDE.md`/`AGENTS.md` convention
 should be nudged, not broken, on arrival. `conflict-markers`, `action-pins`, and
 `docs-links` stay at `error` (a leftover marker, an unpinned action, or a broken
-link is never intentional), and `file-caps` ships warn-tier shared defaults.
+link is never intentional).
+
+### `file-caps`: the deliberate on-arrival exception
+
+`file-caps` is the one default-on check whose shared defaults carry an `error`
+tier, so it can **hard-fail a consumer's CI on the next bump** — a considered
+departure from the nudge-don't-break posture above. A fleet-wide size standard is
+only worth having if it actually gates; the defaults are meant to break loudly so a
+repo notices and responds, rather than accumulating silent warnings forever. The
+break is bounded and self-service: repo `overrides` match **first**, so a consumer
+sets a laxer `error` cap for any glob, grandfathers existing over-cap files into the
+baseline (`--update-baseline`, which downgrades them to `warn`), or opts out with
+`enabled: false` — each a one-line change surfaced by the failing CI run. This is
+the intended exception to "must be safe with no config," accepted for `file-caps`
+alone; a new check does not get to copy it without the same deliberate decision.
 
 Every default-on check is **opt-out** per repo: set `enabled: false` in its
 `.repo-hygiene.yml` section and the runner skips it entirely — the escape hatch for

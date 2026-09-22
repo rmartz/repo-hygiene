@@ -1,14 +1,14 @@
 ---
 type: Library
 title: The file-caps check
-description: Enforces per-glob line and byte size caps with a grandfathered migration baseline; on by default with warn-tier shared caps.
+description: Enforces per-glob line and byte size caps with a grandfathered migration baseline; on by default with two-tier (warn + error) shared caps.
 resource: src/checks/file-caps.ts
 tags: [hygiene, ci, checks, size]
 ---
 
 # `file-caps`
 
-**Default:** on (warn-tier defaults) · **Config:** `overrides` (+ `.repo-hygiene-baseline.json`) · **Opt out:** `enabled: false`
+**Default:** on (two-tier defaults) · **Config:** `overrides` (+ `.repo-hygiene-baseline.json`) · **Opt out:** `enabled: false`
 
 Per-glob file size caps with a migration ramp. Each file takes the **first
 matching** `overrides` entry (most-specific first, first-match-wins — no merge) and
@@ -43,13 +43,38 @@ checks:
 
 ## Shared defaults
 
-`file-caps` is **default-on**: it ships **warn-tier shared defaults** (generous
-`lines`/`bytes` caps for common code and Markdown files) that apply when a repo
-configures nothing, so it is advisory-only and safe on arrival. A repo's own
-`overrides` are consulted **first** (they match ahead of the defaults, per
-first-match-wins), so you tighten any glob — or add an `error` tier — by listing
-it. The shared defaults carry no `error` tier, so they never hard-fail CI; to turn
-the check off entirely, use `enabled: false`.
+`file-caps` is **default-on** and ships **two-tier shared defaults** (a `warn` nudge
+below a hard `error` cap) that apply when a repo configures nothing. Unlike the
+other default-on checks these **hard-gate on arrival** — see
+[the on-arrival exception](../distribution-contract.md) for why. They are ordered
+narrowest-first (first-match-wins):
+
+| Applies to              | Glob                                                                    | `lines` warn / error | `bytes` warn / error |
+| ----------------------- | ----------------------------------------------------------------------- | -------------------- | -------------------- |
+| Agent directive files   | `**/{AGENTS,CLAUDE}.md`, `**/.cursorrules`, `**/.cursor/rules/**/*.mdc` | 200 / 300            | 32 KB / 48 KB        |
+| Test files (JS/TS)      | `**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}`                      | 800 / 1200           | 96 KB / 128 KB       |
+| Test files (Go/Py/Ruby) | `**/*_{test,spec}.{go,py,rb}`, `**/test_*.py`                           | 800 / 1200           | 96 KB / 128 KB       |
+| Code under a test dir   | `**/{__tests__,test,tests,spec,specs}/**/*.{…code…}`                    | 800 / 1200           | 96 KB / 128 KB       |
+| Production code         | `**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs}` | 400 / 600            | 48 KB / 64 KB        |
+| Markdown / docs         | `**/*.md`                                                               | 700 / 1000           | 96 KB / 128 KB       |
+
+Two rows are deliberate departures from the generic code/Markdown caps:
+**agent directive files** (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
+and `.cursor/rules/*.mdc`) get the _tightest_ cap because a directive file only
+earns its keep if the model actually reads it — Claude and Cursor guidance both
+favor short, focused instruction files; and **test files** get the _widest_ cap
+because table-driven cases, fixtures, and exhaustive assertions legitimately run
+longer than production code. The two-tier numbers and the warn:error ratio follow
+the scheme documented in
+[hidden-role-game](https://github.com/rmartz/hidden-role-game)'s `AGENTS.md`,
+widened for the arbitrary consumer repo.
+
+A repo's own `overrides` are consulted **first** (they match ahead of the defaults,
+per first-match-wins), so you tighten a glob, set a **laxer** `error` cap, or add
+tiers by listing it. Because the defaults now error, a consumer that trips them on
+the next bump rectifies with a one-line override, a baseline adoption
+(`--update-baseline`, which grandfathers existing over-cap files to `warn`), or
+`enabled: false` to turn the check off entirely.
 
 ## The baseline ramp (`--update-baseline`)
 
