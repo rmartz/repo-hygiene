@@ -13,7 +13,14 @@
 name: merge-safety
 
 on:
-  pull_request:
+  # pull_request_target (not pull_request): a pull_request run is dispatched
+  # against refs/pull/N/merge, which GitHub cannot build for an unmergeable PR — so
+  # on a conflicting PR no run fires and the required `merge-safety` check is never
+  # posted, hanging the PR. pull_request_target runs in base context (no merge
+  # commit needed) and is safe here: the reusable evaluate job checks out the base
+  # ref, fetches the PR head only as git data, and runs the published CLI — never PR
+  # code. See rmartz/merge-safety docs/consuming.md.
+  pull_request_target:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
   push:
     branches: [main]
