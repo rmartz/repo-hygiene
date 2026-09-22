@@ -1,27 +1,41 @@
 name: Repo Hygiene
 
 # Dogfood: repo-hygiene is its own first consumer, using the exact caller shape
-# every consuming repo uses. It pins our published reusable workflow by SHA
-# (Dependabot bumps it via the github-actions ecosystem) and runs the default-on
-# checks against our own tree through the published @rmartz/repo-hygiene —
-# validating the consumer install + propagation path end to end.
+# every consuming repo uses — now the rmartz/repo-hygiene-action composite
+# Action, which is what we actually ship. Our reusable workflow's `version:`
+# input is frozen at CLI 3.0.0 pending this migration (rmartz/repo-hygiene#45),
+# so a caller pinned to it validates a distribution path we no longer publish
+# updates through; this caller validates the one we do.
 #
-# This is distinct from the CI "Self-hygiene" job, which runs the *full* check set
-# from the freshly-built local CLI for regression coverage. This one validates the
-# *shipped distribution*; that one validates the *code in the PR*.
+# This stays distinct from the CI "Self-hygiene" job, which runs the *full* check
+# set from the freshly-built local CLI for regression coverage. This one
+# validates the *shipped distribution* — deliberately one Action release behind
+# our own `main`, which is exactly the lag a real consumer experiences; that one
+# validates the *code in the PR*.
+#
+# The consumer owns this job: it checks out the workspace first (the Action scans
+# it and checks out nothing itself), then runs the Action as a step. `checks` is
+# omitted so the registry's default-on set runs, and `config` is omitted because
+# the CLI auto-discovers `.repo-hygiene.yml` in the working directory — both
+# preserving this caller's previous behaviour.
 #
 # This file is self-managed by this repo — it is intentionally NOT the
-# bootstrap-seeded (npm-install-@0.4.0) workflow. Bootstrap is a one-time new-repo
-# starter, not an ongoing manager (see AGENTS.md § Repository conformance).
+# bootstrap-seeded workflow. Bootstrap is a one-time new-repo starter, not an
+# ongoing manager (see AGENTS.md § Repository conformance).
 
 on:
   pull_request:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: read # read the public @rmartz/repo-hygiene package from GitHub Packages
+
 jobs:
   hygiene:
-    permissions:
-      contents: read
-      packages: read
-    uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@9bea45565355ea99e4669ca2b8db8c8badf21a1b # v1.0.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: rmartz/repo-hygiene-action@12245f5aae730c8ae0dfa5851c0320335ad0c96c # v2.0.0
