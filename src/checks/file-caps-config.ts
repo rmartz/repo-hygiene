@@ -87,6 +87,9 @@ function asLineCount(value: unknown, glob: string): number {
   return value;
 }
 
+/** Extensions treated as source code by the shared line/byte caps. */
+const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs';
+
 /**
  * Warn-only fleet defaults, applied beneath a repo's own `overrides` (which match
  * first). Advisory by design — no `error` tier — so `file-caps` can be default-on
@@ -94,13 +97,38 @@ function asLineCount(value: unknown, glob: string): number {
  * glob by adding its own entry (with an `error` tier), or turns the check off
  * entirely with `enabled: false`. Values are intentionally generous; tune to fleet
  * norms.
+ *
+ * Order matters: entries are first-match-wins, so the narrower globs come first.
+ *   1. Agent directive files (`AGENTS.md` / `CLAUDE.md`) — a *tighter* 200-line /
+ *      32 KB cap. Directive files earn their keep only if the model actually reads
+ *      them; Claude and Cursor guidance both push toward short, focused instruction
+ *      files, so the default nudges long ones toward being trimmed or split.
+ *   2. Test files — a *wider* 1200-line / 128 KB cap. Table-driven cases, fixtures,
+ *      and exhaustive assertions legitimately run longer than production code, so a
+ *      test file should not warn at the production threshold.
+ *   3. Production code — 600 lines / 64 KB.
+ *   4. Markdown / docs — 1000 lines / 128 KB.
  */
 export const DEFAULT_OVERRIDES: OverrideEntry[] = [
+  // Agent directive files: tighter than plain Markdown, kept short and focused.
+  { glob: '**/{AGENTS,CLAUDE}.md', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
+  // Test files: wider than production code. Suffix conventions across languages…
   {
-    glob: '**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs}',
-    lines: { warn: 600 },
-    bytes: { warn: 64 * 1024 },
+    glob: '**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}',
+    lines: { warn: 1200 },
+    bytes: { warn: 128 * 1024 },
   },
+  { glob: '**/*_{test,spec}.{go,py,rb}', lines: { warn: 1200 }, bytes: { warn: 128 * 1024 } },
+  { glob: '**/test_*.py', lines: { warn: 1200 }, bytes: { warn: 128 * 1024 } },
+  // …plus any code file under a conventional test directory.
+  {
+    glob: `**/{__tests__,test,tests,spec,specs}/**/*.{${CODE_EXTS}}`,
+    lines: { warn: 1200 },
+    bytes: { warn: 128 * 1024 },
+  },
+  // Production code.
+  { glob: `**/*.{${CODE_EXTS}}`, lines: { warn: 600 }, bytes: { warn: 64 * 1024 } },
+  // Markdown / docs.
   { glob: '**/*.md', lines: { warn: 1000 }, bytes: { warn: 128 * 1024 } },
 ];
 

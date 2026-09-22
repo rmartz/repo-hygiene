@@ -91,4 +91,32 @@ describe('resolveFileCapsOverrides', () => {
     expect(entries[0]).toEqual({ glob: 'src/**/*.ts', lines: { error: 500 } });
     expect(entries.slice(1)).toEqual(DEFAULT_OVERRIDES);
   });
+
+  it('caps agent directive files tighter than plain Markdown (200 lines / 32 KB)', () => {
+    const agents = DEFAULT_OVERRIDES.find((e) => e.glob === '**/{AGENTS,CLAUDE}.md');
+    expect(agents).toEqual({
+      glob: '**/{AGENTS,CLAUDE}.md',
+      lines: { warn: 200 },
+      bytes: { warn: 32 * 1024 },
+    });
+  });
+
+  it('gives every test-file default a wider allowance than production code', () => {
+    const testGlobs = DEFAULT_OVERRIDES.filter((e) => /test|spec/.test(e.glob));
+    expect(testGlobs.length).toBeGreaterThan(0);
+    for (const entry of testGlobs) {
+      expect(entry.lines?.warn).toBe(1200);
+      expect(entry.bytes?.warn).toBe(128 * 1024);
+    }
+  });
+
+  it('orders the narrower globs before the generic code/Markdown globs (first-match-wins)', () => {
+    const globs = DEFAULT_OVERRIDES.map((e) => e.glob);
+    const agentsIdx = globs.indexOf('**/{AGENTS,CLAUDE}.md');
+    const mdIdx = globs.findIndex((g) => g === '**/*.md');
+    const codeIdx = globs.findIndex((g) => g.startsWith('**/*.{ts,'));
+    const lastTestIdx = globs.map((g) => /test|spec/.test(g)).lastIndexOf(true);
+    expect(agentsIdx).toBeLessThan(mdIdx); // AGENTS/CLAUDE match before plain **/*.md
+    expect(lastTestIdx).toBeLessThan(codeIdx); // test globs match before **/*.{code}
+  });
 });
