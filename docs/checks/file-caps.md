@@ -51,7 +51,7 @@ narrowest-first (first-match-wins):
 
 | Applies to              | Glob                                                                    | `lines` warn / error | `bytes` warn / error |
 | ----------------------- | ----------------------------------------------------------------------- | -------------------- | -------------------- |
-| Agent directive files   | `**/{AGENTS,CLAUDE}.md`, `**/.cursorrules`, `**/.cursor/rules/**/*.mdc` | 140 / 200            | 24 KB / 32 KB        |
+| Agent directive files   | `**/{AGENTS,CLAUDE}.md`, `**/.cursorrules`, `**/.cursor/rules/**/*.mdc` | 200 / 300            | 32 KB / 48 KB        |
 | Test files (JS/TS)      | `**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}`                      | 800 / 1200           | 96 KB / 128 KB       |
 | Test files (Go/Py/Ruby) | `**/*_{test,spec}.{go,py,rb}`, `**/test_*.py`                           | 800 / 1200           | 96 KB / 128 KB       |
 | Code under a test dir   | `**/{__tests__,test,tests,spec,specs}/**/*.{…code…}`                    | 800 / 1200           | 96 KB / 128 KB       |

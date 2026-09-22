@@ -94,7 +94,7 @@ describe('resolveFileCapsOverrides', () => {
     expect(entries.slice(1)).toEqual(DEFAULT_OVERRIDES);
   });
 
-  it('caps every agent directive file tighter than plain Markdown (error 200 lines / 32 KB)', () => {
+  it('caps every agent directive file tighter than plain Markdown (error 300 lines / 48 KB)', () => {
     const directiveGlobs = [
       '**/{AGENTS,CLAUDE}.md',
       '**/.cursorrules',
@@ -104,8 +104,8 @@ describe('resolveFileCapsOverrides', () => {
       const entry = DEFAULT_OVERRIDES.find((e) => e.glob === glob);
       expect(entry).toEqual({
         glob,
-        lines: { warn: 140, error: 200 },
-        bytes: { warn: 24 * 1024, error: 32 * 1024 },
+        lines: { warn: 200, error: 300 },
+        bytes: { warn: 32 * 1024, error: 48 * 1024 },
       });
     }
   });

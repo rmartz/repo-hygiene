@@ -104,7 +104,7 @@ const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,c
  *
  * Order matters: entries are first-match-wins, so the narrower globs come first.
  *   1. Agent directive files (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
- *      and `.cursor/rules/*.mdc`) — the tightest cap (warn 140 / error 200 lines). A
+ *      and `.cursor/rules/*.mdc`) — the tightest cap (warn 200 / error 300 lines). A
  *      directive file earns its keep only if the model actually reads it; Claude and
  *      Cursor guidance both push toward short, focused instruction files.
  *   2. Test files — the widest cap (warn 800 / error 1200 lines). Table-driven
@@ -121,18 +121,18 @@ export const DEFAULT_OVERRIDES: OverrideEntry[] = [
   // AGENTS.md / CLAUDE.md plus Cursor's .cursorrules and .cursor/rules/*.mdc.
   {
     glob: '**/{AGENTS,CLAUDE}.md',
-    lines: { warn: 140, error: 200 },
-    bytes: { warn: 24 * 1024, error: 32 * 1024 },
+    lines: { warn: 200, error: 300 },
+    bytes: { warn: 32 * 1024, error: 48 * 1024 },
   },
   {
     glob: '**/.cursorrules',
-    lines: { warn: 140, error: 200 },
-    bytes: { warn: 24 * 1024, error: 32 * 1024 },
+    lines: { warn: 200, error: 300 },
+    bytes: { warn: 32 * 1024, error: 48 * 1024 },
   },
   {
     glob: '**/.cursor/rules/**/*.mdc',
-    lines: { warn: 140, error: 200 },
-    bytes: { warn: 24 * 1024, error: 32 * 1024 },
+    lines: { warn: 200, error: 300 },
+    bytes: { warn: 32 * 1024, error: 48 * 1024 },
   },
   // Test files: the widest cap. Suffix conventions across languages…
   {
