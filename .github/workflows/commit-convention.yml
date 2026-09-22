@@ -33,8 +33,11 @@ jobs:
           AFTER: ${{ github.event.after }}
         run: |
           set -euo pipefail
-          # Conventional-commit subject grammar — mirrors pr-title-lint.yml.
-          pattern='^(feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert)(\([^)]+\))?!?: [^[:space:]].*$'
+          # Conventional-commit subject grammar — mirrors pr-title-lint.yml. The
+          # '!' breaking-change marker is allowed only on a functional type
+          # (feat, fix, perf, revert); a non-functional type (docs, chore,
+          # refactor, test, style, ci, build) may not carry it.
+          pattern='^((feat|fix|perf|revert)(\([^)]+\))?!?|(docs|chore|refactor|test|style|ci|build)(\([^)]+\))?): [^[:space:]].*$'
           # On a branch's first push BEFORE is all-zeros; validate just the tip.
           if printf '%s' "$BEFORE" | grep -qE '^0+$'; then
             revs="$AFTER"

@@ -26,12 +26,29 @@ jobs:
             echo "Remove [WIP] before merging — a work-in-progress PR must not be mergeable."
             exit 1
           fi
-          if printf '%s\n' "$PR_TITLE" | grep -qE '^(feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert)(\([^)]+\))?!?: [^[:space:]].*$'; then
+          # Reject a '!' breaking-change marker on a non-functional type. Under the
+          # conventionalcommits preset, '!' forces a *major* release regardless of
+          # type, so it is only meaningful on a type that changes functionality
+          # (feat, fix, perf, revert). A non-functional type (docs, chore,
+          # refactor, test, style, ci, build) does not describe a behavior change,
+          # so a '!' on it is either a mistake or would silently promote a
+          # non-change to a major bump. Grammar note: this specific message must
+          # fire before the generic format check below, whose core regex (mirrored
+          # in commit-convention.yml) also rejects these — allowing '!' only on
+          # feat/fix/perf/revert.
+          if printf '%s\n' "$PR_TITLE" | grep -qE '^(docs|chore|refactor|test|style|ci|build)(\([^)]+\))?!: '; then
+            echo "PR title puts a '!' breaking-change marker on a non-functional type: $PR_TITLE"
+            echo "'!' may only be used with a type that changes functionality (feat, fix, perf, revert)."
+            echo "A non-functional type (docs, chore, refactor, test, style, ci, build) does not describe a behavior change, so a breaking-change marker on it is meaningless — drop the '!'."
+            exit 1
+          fi
+          if printf '%s\n' "$PR_TITLE" | grep -qE '^((feat|fix|perf|revert)(\([^)]+\))?!?|(docs|chore|refactor|test|style|ci|build)(\([^)]+\))?): [^[:space:]].*$'; then
             echo "PR title is valid: $PR_TITLE"
           else
             echo "PR title does not follow Conventional Commits format."
             echo "Expected: <type>[!]: description  or  <type>(<scope>)[!]: description"
             echo "Valid types: feat, fix, docs, chore, refactor, test, style, perf, ci, build, revert"
+            echo "The '!' breaking-change marker is allowed only on feat, fix, perf, and revert."
             echo "Got: $PR_TITLE"
             exit 1
           fi
