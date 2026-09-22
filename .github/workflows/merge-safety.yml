@@ -24,6 +24,9 @@ on:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
   push:
     branches: [main]
+  # Re-hold / release open PRs when the base branch's own CI flips red/green.
+  check_suite:
+    types: [completed]
   workflow_dispatch:
     inputs:
       pr:
