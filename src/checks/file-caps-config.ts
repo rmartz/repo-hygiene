@@ -91,49 +91,83 @@ function asLineCount(value: unknown, glob: string): number {
 const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs';
 
 /**
- * Warn-only fleet defaults, applied beneath a repo's own `overrides` (which match
- * first). Advisory by design — no `error` tier — so `file-caps` can be default-on
- * without hard-failing a baseline-less consumer on arrival. A repo tightens any
- * glob by adding its own entry (with an `error` tier), or turns the check off
- * entirely with `enabled: false`. Values are intentionally generous; tune to fleet
- * norms.
+ * Two-tier fleet defaults — a `warn` nudge below a hard `error` cap — applied
+ * beneath a repo's own `overrides` (which match first). Unlike the other default-on
+ * checks, `file-caps` ships an `error` tier in its defaults, so a repo that
+ * configures nothing still *hard-gates* on file size. This is a deliberate
+ * departure from the usual warn-on-arrival posture (see
+ * `docs/distribution-contract.md`): the change is meant to break loudly in a
+ * consumer's CI on the next bump, and the consumer rectifies by grandfathering
+ * existing over-cap files into the baseline (`--update-baseline`), setting a laxer
+ * `error` cap for a glob in `.repo-hygiene.yml` (repo overrides match first), or
+ * opting out with `enabled: false`.
  *
  * Order matters: entries are first-match-wins, so the narrower globs come first.
  *   1. Agent directive files (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
- *      and `.cursor/rules/*.mdc`) — a *tighter* 200-line / 32 KB cap. Directive
- *      files earn their keep only if the model actually reads them; Claude and
- *      Cursor guidance both push toward short, focused instruction files, so the
- *      default nudges long ones toward being trimmed or split.
- *   2. Test files — a *wider* 1200-line / 128 KB cap. Table-driven cases, fixtures,
- *      and exhaustive assertions legitimately run longer than production code, so a
- *      test file should not warn at the production threshold.
- *   3. Production code — 600 lines / 64 KB.
- *   4. Markdown / docs — 1000 lines / 128 KB.
+ *      and `.cursor/rules/*.mdc`) — the tightest cap (warn 140 / error 200 lines). A
+ *      directive file earns its keep only if the model actually reads it; Claude and
+ *      Cursor guidance both push toward short, focused instruction files.
+ *   2. Test files — the widest cap (warn 800 / error 1200 lines). Table-driven
+ *      cases, fixtures, and exhaustive assertions legitimately run longer than code.
+ *   3. Production code — warn 400 / error 600 lines.
+ *   4. Markdown / docs — warn 700 / error 1000 lines.
+ *
+ * Byte caps track the same tiers. The two-tier scheme and the warn:error ratio
+ * follow the model documented in hidden-role-game's AGENTS.md, widened for the
+ * arbitrary consumer repo.
  */
 export const DEFAULT_OVERRIDES: OverrideEntry[] = [
-  // Agent directive files: tighter than plain Markdown, kept short and focused.
-  // Covers AGENTS.md / CLAUDE.md plus Cursor's .cursorrules and .cursor/rules/*.mdc.
-  { glob: '**/{AGENTS,CLAUDE}.md', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
-  { glob: '**/.cursorrules', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
-  { glob: '**/.cursor/rules/**/*.mdc', lines: { warn: 200 }, bytes: { warn: 32 * 1024 } },
-  // Test files: wider than production code. Suffix conventions across languages…
+  // Agent directive files: the tightest cap, kept short and focused. Covers
+  // AGENTS.md / CLAUDE.md plus Cursor's .cursorrules and .cursor/rules/*.mdc.
+  {
+    glob: '**/{AGENTS,CLAUDE}.md',
+    lines: { warn: 140, error: 200 },
+    bytes: { warn: 24 * 1024, error: 32 * 1024 },
+  },
+  {
+    glob: '**/.cursorrules',
+    lines: { warn: 140, error: 200 },
+    bytes: { warn: 24 * 1024, error: 32 * 1024 },
+  },
+  {
+    glob: '**/.cursor/rules/**/*.mdc',
+    lines: { warn: 140, error: 200 },
+    bytes: { warn: 24 * 1024, error: 32 * 1024 },
+  },
+  // Test files: the widest cap. Suffix conventions across languages…
   {
     glob: '**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}',
-    lines: { warn: 1200 },
-    bytes: { warn: 128 * 1024 },
+    lines: { warn: 800, error: 1200 },
+    bytes: { warn: 96 * 1024, error: 128 * 1024 },
   },
-  { glob: '**/*_{test,spec}.{go,py,rb}', lines: { warn: 1200 }, bytes: { warn: 128 * 1024 } },
-  { glob: '**/test_*.py', lines: { warn: 1200 }, bytes: { warn: 128 * 1024 } },
+  {
+    glob: '**/*_{test,spec}.{go,py,rb}',
+    lines: { warn: 800, error: 1200 },
+    bytes: { warn: 96 * 1024, error: 128 * 1024 },
+  },
+  {
+    glob: '**/test_*.py',
+    lines: { warn: 800, error: 1200 },
+    bytes: { warn: 96 * 1024, error: 128 * 1024 },
+  },
   // …plus any code file under a conventional test directory.
   {
     glob: `**/{__tests__,test,tests,spec,specs}/**/*.{${CODE_EXTS}}`,
-    lines: { warn: 1200 },
-    bytes: { warn: 128 * 1024 },
+    lines: { warn: 800, error: 1200 },
+    bytes: { warn: 96 * 1024, error: 128 * 1024 },
   },
   // Production code.
-  { glob: `**/*.{${CODE_EXTS}}`, lines: { warn: 600 }, bytes: { warn: 64 * 1024 } },
+  {
+    glob: `**/*.{${CODE_EXTS}}`,
+    lines: { warn: 400, error: 600 },
+    bytes: { warn: 48 * 1024, error: 64 * 1024 },
+  },
   // Markdown / docs.
-  { glob: '**/*.md', lines: { warn: 1000 }, bytes: { warn: 128 * 1024 } },
+  {
+    glob: '**/*.md',
+    lines: { warn: 700, error: 1000 },
+    bytes: { warn: 96 * 1024, error: 128 * 1024 },
+  },
 ];
 
 /**

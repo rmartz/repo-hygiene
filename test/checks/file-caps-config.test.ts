@@ -72,15 +72,17 @@ describe('parseFileCapsConfig', () => {
 });
 
 describe('resolveFileCapsOverrides', () => {
-  it('applies the shared warn-tier defaults when a repo configures nothing', () => {
+  it('applies the shared defaults when a repo configures nothing', () => {
     const entries = resolveFileCapsOverrides({});
     expect(entries).toEqual(DEFAULT_OVERRIDES);
   });
 
-  it('ships defaults as advisory only — no error tier', () => {
+  it('ships two-tier defaults — every glob hard-gates with warn below error', () => {
     for (const entry of DEFAULT_OVERRIDES) {
-      expect(entry.lines?.error).toBeUndefined();
-      expect(entry.bytes?.error).toBeUndefined();
+      expect(entry.lines?.error).toBeGreaterThan(0);
+      expect(entry.lines?.warn).toBeLessThan(entry.lines?.error ?? 0);
+      expect(entry.bytes?.error).toBeGreaterThan(0);
+      expect(entry.bytes?.warn).toBeLessThan(entry.bytes?.error ?? 0);
     }
   });
 
@@ -92,7 +94,7 @@ describe('resolveFileCapsOverrides', () => {
     expect(entries.slice(1)).toEqual(DEFAULT_OVERRIDES);
   });
 
-  it('caps every agent directive file tighter than plain Markdown (200 lines / 32 KB)', () => {
+  it('caps every agent directive file tighter than plain Markdown (error 200 lines / 32 KB)', () => {
     const directiveGlobs = [
       '**/{AGENTS,CLAUDE}.md',
       '**/.cursorrules',
@@ -100,16 +102,20 @@ describe('resolveFileCapsOverrides', () => {
     ];
     for (const glob of directiveGlobs) {
       const entry = DEFAULT_OVERRIDES.find((e) => e.glob === glob);
-      expect(entry).toEqual({ glob, lines: { warn: 200 }, bytes: { warn: 32 * 1024 } });
+      expect(entry).toEqual({
+        glob,
+        lines: { warn: 140, error: 200 },
+        bytes: { warn: 24 * 1024, error: 32 * 1024 },
+      });
     }
   });
 
-  it('gives every test-file default a wider allowance than production code', () => {
+  it('gives every test-file default the widest cap (error 1200 lines / 128 KB)', () => {
     const testGlobs = DEFAULT_OVERRIDES.filter((e) => /test|spec/.test(e.glob));
     expect(testGlobs.length).toBeGreaterThan(0);
     for (const entry of testGlobs) {
-      expect(entry.lines?.warn).toBe(1200);
-      expect(entry.bytes?.warn).toBe(128 * 1024);
+      expect(entry.lines).toEqual({ warn: 800, error: 1200 });
+      expect(entry.bytes).toEqual({ warn: 96 * 1024, error: 128 * 1024 });
     }
   });
 

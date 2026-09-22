@@ -15,7 +15,7 @@ default-on or opt-in, the [overview](../overview.md) for how to run them, and
 | [`conflict-markers`](conflict-markers.md) | on        | Leftover Git merge-conflict markers.                                   |
 | [`action-pins`](action-pins.md)           | on        | GitHub Actions `uses:` refs not SHA-pinned with a full-semver comment. |
 | [`docs-links`](docs-links.md)             | on        | Intra-repo Markdown links whose target no longer exists.               |
-| [`file-caps`](file-caps.md)               | on (warn) | Files exceeding per-glob line/byte caps (warn-tier shared defaults).   |
+| [`file-caps`](file-caps.md)               | on        | Files exceeding per-glob line/byte caps (two-tier shared defaults).    |
 | [`okf`](okf.md)                           | on (warn) | OKF frontmatter (type/title/description/resource) violations.          |
 | [`okf-index`](okf-index.md)               | on (warn) | OKF bundle navigability + no-frontmatter-on-index.                     |
 | [`md-pairing`](md-pairing.md)             | on (warn) | `CLAUDE.md`/`AGENTS.md` not paired as regular files.                   |
