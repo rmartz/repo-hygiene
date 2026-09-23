@@ -62,6 +62,22 @@ describe('checkActionRef', () => {
     expect(checkActionRef('./.github/actions/setup')).toBeNull();
   });
 
+  it('exempts a self-repository ref', () => {
+    expect(checkActionRef('$/.github/actions/setup')).toBeNull();
+  });
+
+  it('exempts a self-repository ref to the repository-root action', () => {
+    expect(checkActionRef('$/')).toBeNull();
+  });
+
+  it('exempts a self-repository reusable-workflow ref', () => {
+    expect(checkActionRef('$/.github/workflows/release.yml')).toBeNull();
+  });
+
+  it('still rejects a bare owner/repo ref that merely contains a dollar sign', () => {
+    expect(checkActionRef('owner/repo$suffix')).toMatch(/unpinned/);
+  });
+
   it('rejects a mutable tag ref', () => {
     expect(checkActionRef('actions/checkout@v7', 'v7')).toMatch(/not SHA-pinned/);
   });
