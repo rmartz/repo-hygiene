@@ -56,7 +56,7 @@ describe('CLI entrypoint', () => {
     );
     execFileSync('git', ['add', '.'], { cwd: repo });
 
-    const result = runViaSymlink(['conflict-markers', '--check'], repo);
+    const result = runViaSymlink(['conflict-markers', '--format', 'text', '--check'], repo);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('conflicted.txt');
