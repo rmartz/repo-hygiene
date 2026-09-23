@@ -33,8 +33,14 @@ The conforming shape:
 ```
 
 **Exemptions:** local composite/action refs (`./…`, `../…`) move with the repo
-commit and are never flagged. A `docker://` image reference is pinned by an
-`@sha256:<digest>` (a mutable `:tag` is not a pin).
+commit and are never flagged, and so do self-repository refs (`$/…`), which GitHub
+resolves to this repository at the exact commit already running — immutable by
+construction and needing no checkout. `$/` is the only form that resolves correctly
+inside a reusable workflow called from another repository, where `./` would resolve
+against the _caller's_ workspace instead; a wrapper workflow therefore uses it to
+reference its own repo's action without carrying a second pin to keep in sync. A
+`docker://` image reference is pinned by an `@sha256:<digest>` (a mutable `:tag` is
+not a pin).
 
 ## Why default-on
 
