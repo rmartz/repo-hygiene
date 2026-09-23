@@ -72,6 +72,13 @@ Most are enforced by eslint / the hygiene checks; the intent:
   reason). Favor type inference; explicit generic args are a smell.
 - **Named exports only**; no default exports. No IIFEs. Prefer `async/await` over
   `.then()`.
+- **Bins stay bare.** A file under `src/bin/` is a wrapper that always calls
+  `run()`. Never gate it behind an `import.meta.url === argv[1]` comparison: when
+  the CLI is launched through a `node_modules/.bin` symlink (npm's shim, or
+  pnpm's via the `.pnpm` store) `argv[1]` is the link and `import.meta.url` is
+  the realpath, so the guard fails and the process exits 0 without running a
+  single check — silently vacuous CI (#67). Keep the logic in a library module
+  (`src/cli.ts`) so tests import that, and nothing needs to import the bin.
 - **Value sets:** default to a structural string union or `as const` array over an
   `enum` (reserve `enum` for internal-only sets never serialized raw).
 - **File caps:** `max-lines` 480 (src) / 720 (tests) via eslint; non-TS files are

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseArgs, resolveOnly } from '../../src/bin/repo-hygiene.js';
-import { createRegistry } from '../../src/registry.js';
-import type { Check } from '../../src/types.js';
+import { parseArgs, resolveOnly } from '../src/cli.js';
+import { createRegistry } from '../src/registry.js';
+import type { Check } from '../src/types.js';
 
 const fake = (name: string, defaultOn?: boolean): Check => ({
   name,
