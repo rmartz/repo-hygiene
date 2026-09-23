@@ -20,7 +20,11 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: chore
+      # Split by dependency type: production bumps ship to users, so they land as
+      # `fix` and cut a patch release; dev-dependency bumps never reach the shipped
+      # artifact, so they stay release-less `chore`. See rmartz/ai#82.
+      prefix: fix
+      prefix-development: chore
       include: scope
     groups:
       # Prettier isolated into its own group so a reformatting bump can't hide in a
