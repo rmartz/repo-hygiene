@@ -6,8 +6,8 @@ import type { Check, Finding } from '../types.js';
  * `.github/` must be pinned to a full 40-char commit SHA with a full-semver
  * version comment (`uses: owner/repo@<sha> # v7.0.0`), never a mutable tag: a
  * tag can be force-moved by a compromised upstream to run code with our token,
- * while a commit SHA is immutable. Local (`./…`) refs move with the repo commit
- * and are exempt. A security-flavored check.
+ * while a commit SHA is immutable. Local (`./…`) and self-repository (`$/…`) refs
+ * move with the repo commit and are exempt. A security-flavored check.
  *
  * `parseUsesLine` / `checkActionRef` / `scanYaml` stay exported (and unit-tested)
  * so PR Shepherd and other callers can reuse the pure logic.
@@ -47,6 +47,16 @@ export function parseUsesLine(line: string): { uses: string; comment?: string } 
 export function checkActionRef(uses: string, comment?: string): string | null {
   // Local composite/action path — moves with the commit, not tag-attackable.
   if (uses.startsWith('./') || uses.startsWith('../')) return null;
+  // Self-repository ref (`$/<path>`) — GitHub resolves it to THIS repository at the
+  // exact commit already running, with no checkout. That is immutable by
+  // construction, so it is exempt for the same reason `./` is, and strictly
+  // stronger: a `./` ref depends on whatever the checkout put on disk, while `$/`
+  // is resolved by the runner itself. Notably it also resolves correctly inside a
+  // reusable workflow called from another repository (where `./` would wrongly
+  // resolve against the CALLER's workspace), which is what makes a wrapper
+  // workflow able to reference its own repo's action without a second pin to keep
+  // in sync. See https://github.blog/changelog/2026-07-30-reference-same-repository-actions-with-self-repository-syntax/
+  if (uses.startsWith('$/')) return null;
   // Docker image reference — the immutable form is a @sha256 digest pin.
   if (uses.startsWith('docker://')) {
     return /@sha256:[0-9a-fA-F]{64}$/.test(uses)
