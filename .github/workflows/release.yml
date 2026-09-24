@@ -2,12 +2,17 @@ name: Release
 
 # Automated CLI releases via semantic-release. On every push to main it analyses
 # the conventional commits since the last release and, when there is a releasable
-# change, publishes @rmartz/repo-hygiene to GitHub Packages (public), creates the
-# GitHub Release with generated notes, and tags v<version>. It does NOT commit
-# anything back to main — no version-sync, no PAT — so the default GITHUB_TOKEN
-# suffices even on protected main (tags/releases aren't branch pushes). See
+# change, publishes @rmartz/repo-hygiene to npmjs (public), creates the GitHub
+# Release with generated notes, and tags v<version>. It does NOT commit anything
+# back to main — no version-sync, no PAT — so the default GITHUB_TOKEN suffices
+# even on protected main (tags/releases aren't branch pushes). See
 # .releaserc.json. The reusable workflow that installs this CLI lives in the
 # separate rmartz/repo-hygiene-action repo (see #45).
+#
+# npm auth is OIDC trusted publishing: npmjs trusts THIS workflow file
+# (`release.yml`) in rmartz/repo-hygiene, so there is no NPM_TOKEN secret.
+# Renaming this file breaks publishing until the trusted publisher on npmjs is
+# updated to match. Provenance attestations are generated automatically.
 
 on:
   push:
@@ -18,7 +23,7 @@ concurrency: release
 
 permissions:
   contents: write # create tags and GitHub releases
-  packages: write # publish to GitHub Packages
+  id-token: write # npm trusted publishing (OIDC) + provenance
   issues: write # semantic-release comments on released issues
   pull-requests: write # semantic-release comments on released PRs
 
@@ -37,6 +42,3 @@ jobs:
       - run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # @semantic-release/npm authenticates to the publishConfig registry
-          # (GitHub Packages) with this token; GITHUB_TOKEN has packages:write.
-          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
