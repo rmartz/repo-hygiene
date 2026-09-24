@@ -109,8 +109,10 @@ default-safety bar is strict.
   non-conventional title yields none.
 - **Releases are automated** via [semantic-release](.releaserc.json): every push
   to `main` with a releasable commit publishes the `@rmartz/repo-hygiene` CLI to
-  GitHub Packages (public), tags `v<version>`, and cuts a GitHub Release — no
-  release PR, no commit-back, no PAT (it only creates tags/releases). See #45 for
+  npmjs (public), tags `v<version>`, and cuts a GitHub Release — no release PR, no
+  commit-back, no PAT. npm auth is OIDC trusted publishing tied to the
+  `release.yml` filename, so there is no `NPM_TOKEN`; renaming that workflow
+  breaks publishing until the trusted publisher on npmjs is updated. See #45 for
   the split from release-please and why.
 - **The reusable workflow is moving out (#45).** `hygiene.yml` is migrating to the
   standalone `rmartz/repo-hygiene-action` repo, which keeps its installed CLI

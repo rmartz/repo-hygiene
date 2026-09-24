@@ -23,9 +23,10 @@ pre-commit/husky hook.
 **A local install is an optional enhancement** for fast feedback while you edit —
 running the checks (or `--staged` over just your changed files) before you push,
 and ratcheting the `file-caps` baseline (section 4). It never changes what CI
-enforces. If you want it, add `@rmartz/repo-hygiene` as a devDependency (pointing
-npm at the `@rmartz` scope on `npm.pkg.github.com`) and wire your own scripts or
-hook; otherwise skip straight to section 1 and stay CI-only.
+enforces. If you want it, add `@rmartz/repo-hygiene` as a devDependency (current
+versions are public on npmjs, so no `.npmrc` scope mapping or token is needed) and
+wire your own scripts or hook; otherwise skip straight to section 1 and stay
+CI-only.
 
 ## 1. Add the caller workflow and Dependabot entry
 
@@ -198,5 +199,7 @@ after files shrink.
   than blocking every PR at once.
 - **`install` fails to find the package.** The package is public on GitHub
   Packages; the reusable workflow reads it with `GITHUB_TOKEN` and the
-  `packages: read` permission. If you install it outside the workflow, point npm
-  at the `@rmartz` scope on `npm.pkg.github.com`.
+  `packages: read` permission. If you install it outside the workflow, install from
+  npmjs with no auth. If an `.npmrc` maps the `@rmartz` scope to
+  `npm.pkg.github.com`, npm looks only there and finds nothing newer than 7.0.1 —
+  remove that mapping.

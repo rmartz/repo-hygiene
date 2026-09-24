@@ -10,8 +10,7 @@ tags: [hygiene, ci, releases, dependabot]
 A newly-added check does **not** require any per-repo change to start running:
 
 1. **Merge → release.** A merged `feat`/`fix` on `main` triggers semantic-release,
-   which publishes a new `@rmartz/repo-hygiene` CLI version to GitHub Packages and
-   tags it. The reusable workflow that installs that CLI (and keeps its installed
+   which publishes a new `@rmartz/repo-hygiene` CLI version to npmjs and tags it. The reusable workflow that installs that CLI (and keeps its installed
    version current) is moving to the separate `rmartz/repo-hygiene-action` repo
    ([#45](https://github.com/rmartz/repo-hygiene/issues/45)); the steps below
    describe the pin/bump loop, which is unchanged apart from the repo it points at.
