@@ -105,8 +105,21 @@ jobs:
           fetch-depth: 0 # semantic-release needs full history + tags
           persist-credentials: false # authenticates via GITHUB_TOKEN below
       - uses: ./.github/actions/setup
+      # Skip @semantic-release/npm's registry-auth check for the dry-run only.
+      # Real publishing moves to npm trusted publishing (OIDC), where the npm
+      # token exchange only works from release.yml, so a PR run has no npm
+      # credential to verify. With `npmPublish: false` the plugin skips the auth
+      # check; the notes-rendering path this job guards is unchanged. This edits
+      # the job's working copy only — the committed .releaserc.json is untouched.
+      - name: Disable npm publishing for the dry-run
+        run: |
+          jq '.plugins |= map(
+            if . == "@semantic-release/npm" then [., {npmPublish: false}]
+            elif type == "array" and .[0] == "@semantic-release/npm"
+            then [.[0], ((.[1] // {}) + {npmPublish: false})]
+            else . end)' .releaserc.json > "$RUNNER_TEMP/releaserc.json"
+          mv "$RUNNER_TEMP/releaserc.json" .releaserc.json
       - run: pnpm exec semantic-release --dry-run --branches "$HEAD_REF"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_REF: ${{ github.head_ref }}
