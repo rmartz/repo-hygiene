@@ -18,7 +18,10 @@ Add one caller workflow (this is what Dependabot keeps current):
 ```yaml
 # .github/workflows/repo-hygiene.yml
 name: Repo Hygiene
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches: [main]
 jobs:
   hygiene:
     permissions:

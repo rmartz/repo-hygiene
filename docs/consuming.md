@@ -40,7 +40,12 @@ The caller workflow pins the reusable workflow by commit SHA:
 ```yaml
 # .github/workflows/repo-hygiene.yml
 name: Repo Hygiene
-on: [pull_request, push]
+# push is limited to main: pull_request covers PR branches, and an unfiltered
+# push would run the job twice per PR-branch push.
+on:
+  pull_request:
+  push:
+    branches: [main]
 jobs:
   hygiene:
     permissions:
@@ -173,7 +178,7 @@ after files shrink.
 
 ## 5. Verify the setup
 
-1. **The workflow runs.** Open a PR (or push to a branch): a **Repo Hygiene**
+1. **The workflow runs.** Open a PR (or push to `main`): a **Repo Hygiene**
    workflow appears in the repo's **Actions** tab, and its `hygiene` job runs to a
    pass. A green job on a repo with no violations confirms the caller, the pin,
    and the auth are all wired correctly.
