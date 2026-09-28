@@ -20,6 +20,8 @@ const git = (args: string[], cwd: string) =>
  */
 export async function assertBaseRef(base: string, cwd: string): Promise<void> {
   const r = await git(['rev-parse', '--verify', '--quiet', `${base}^{commit}`], cwd);
+  if (r.timedOut)
+    throw new Error(`file-caps: timed out verifying base ref ${JSON.stringify(base)}`);
   if (r.code !== 0) {
     throw new Error(
       `file-caps: grandfather mode cannot resolve base ref ${JSON.stringify(base)}; ` +
