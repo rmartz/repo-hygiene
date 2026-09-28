@@ -3,6 +3,7 @@ import {
   DEFAULT_OVERRIDES,
   parseByteSize,
   parseFileCapsConfig,
+  parseFileCapsMode,
   resolveFileCapsOverrides,
 } from '../../src/checks/file-caps-config.js';
 
@@ -127,5 +128,40 @@ describe('resolveFileCapsOverrides', () => {
     const lastTestIdx = globs.map((g) => /test|spec/.test(g)).lastIndexOf(true);
     expect(agentsIdx).toBeLessThan(mdIdx); // AGENTS/CLAUDE match before plain **/*.md
     expect(lastTestIdx).toBeLessThan(codeIdx); // test globs match before **/*.{code}
+  });
+});
+
+describe('parseFileCapsMode', () => {
+  it('leaves mode unset (implicit ratchet-or-strict) and defaults base to origin/main', () => {
+    expect(parseFileCapsMode({})).toEqual({ base: 'origin/main' });
+  });
+
+  it('accepts each mode', () => {
+    for (const mode of ['strict', 'ratchet', 'grandfather'] as const) {
+      expect(parseFileCapsMode({ mode }).mode).toBe(mode);
+    }
+  });
+
+  it('accepts a custom base for grandfather mode', () => {
+    expect(parseFileCapsMode({ mode: 'grandfather', base: 'origin/develop' })).toEqual({
+      mode: 'grandfather',
+      base: 'origin/develop',
+    });
+  });
+
+  it('rejects an unknown mode', () => {
+    expect(() => parseFileCapsMode({ mode: 'lenient' })).toThrow(/"mode" must be one of/);
+  });
+
+  it('rejects an empty, non-string, or option-like base', () => {
+    for (const base of ['', 7, '--output=x']) {
+      expect(() => parseFileCapsMode({ mode: 'grandfather', base })).toThrow(/must be a git ref/);
+    }
+  });
+
+  it('rejects base outside grandfather mode', () => {
+    expect(() => parseFileCapsMode({ mode: 'ratchet', base: 'origin/main' })).toThrow(
+      /only applies to mode: grandfather/,
+    );
   });
 });
