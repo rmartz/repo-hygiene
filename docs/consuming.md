@@ -162,9 +162,16 @@ checks:
 
 ## 4. Adopt `file-caps` (the size-cap ramp)
 
-`file-caps` has committed migration state. When you first enable it, grandfather
-every file already over a hard cap at its current size so the check reports them
-as warnings instead of blocking:
+`file-caps` needs a plan for files already over a hard cap. Pick a
+[mode](checks/file-caps.md#modes):
+
+- **`mode: grandfather`** — no committed state. Files over cap on `origin/main` are
+  exempt (reported as warnings, with no ceiling); everything else is enforced, and
+  a file loses its exemption once it is under cap on `origin/main`. CI must fetch
+  `origin/main` (`actions/checkout` with `fetch-depth: 0`).
+- **Ratchet (the default when a baseline file exists)** — baseline every file
+  already over a hard cap at its current size, so the check reports them as
+  warnings instead of blocking:
 
 ```bash
 ai-repo-hygiene --update-baseline --check --config .repo-hygiene.yml
@@ -173,7 +180,7 @@ ai-repo-hygiene --update-baseline --check --config .repo-hygiene.yml
 Commit the generated `.repo-hygiene-baseline.json`. From then on the baseline
 **only shrinks** — a file that gets smaller ratchets its ceiling down, one that
 drops under the cap is removed, and one that grows past its recorded ceiling loses
-the grandfather and hard-errors. Re-run the same command to ratchet the baseline
+its exemption and hard-errors. Re-run the same command to ratchet the baseline
 after files shrink.
 
 ## 5. Verify the setup

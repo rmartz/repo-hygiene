@@ -178,6 +178,47 @@ export function resolveFileCapsOverrides(settings: CheckConfig): OverrideEntry[]
   return [...parseFileCapsConfig(settings), ...DEFAULT_OVERRIDES];
 }
 
+/**
+ * How over-cap files are treated. `strict` enforces every cap; `ratchet` honors
+ * the committed baseline (`.repo-hygiene-baseline.json`); `grandfather` exempts
+ * any file already over its cap on the `base` ref, with no committed state.
+ * Unset keeps the historical behavior: ratchet when a baseline file exists,
+ * otherwise strict.
+ */
+export const FILE_CAPS_MODES = ['strict', 'ratchet', 'grandfather'] as const;
+export type FileCapsMode = (typeof FILE_CAPS_MODES)[number];
+
+export const DEFAULT_BASE_REF = 'origin/main';
+
+export interface FileCapsModeConfig {
+  mode?: FileCapsMode;
+  /** The ref `grandfather` compares against. */
+  base: string;
+}
+
+/** Parse and validate `mode` / `base` from a `file-caps` config section. */
+export function parseFileCapsMode(settings: CheckConfig): FileCapsModeConfig {
+  const { mode, base } = settings;
+  if (mode !== undefined && !FILE_CAPS_MODES.some((m) => m === mode)) {
+    throw new Error(
+      `file-caps: "mode" must be one of ${FILE_CAPS_MODES.join(', ')}, got ${JSON.stringify(mode)}`,
+    );
+  }
+  const parsed: FileCapsModeConfig = {
+    ...(mode !== undefined && { mode: mode as FileCapsMode }),
+    base: DEFAULT_BASE_REF,
+  };
+  if (base === undefined) return parsed;
+  // A leading '-' would be read by git as an option, not a ref.
+  if (typeof base !== 'string' || base.trim() === '' || base.startsWith('-')) {
+    throw new Error(`file-caps: "base" must be a git ref, got ${JSON.stringify(base)}`);
+  }
+  if (mode !== 'grandfather') {
+    throw new Error('file-caps: "base" only applies to mode: grandfather');
+  }
+  return { ...parsed, base };
+}
+
 /** Parse and validate the `overrides` list from a `file-caps` config section. */
 export function parseFileCapsConfig(settings: CheckConfig): OverrideEntry[] {
   const raw = settings.overrides;

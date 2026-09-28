@@ -1,14 +1,14 @@
 ---
 type: Library
 title: The file-caps check
-description: Enforces per-glob line and byte size caps with a grandfathered migration baseline; on by default with two-tier (warn + error) shared caps.
+description: Enforces per-glob line and byte size caps, with strict, ratchet (committed baseline), or grandfather (base-branch) handling of existing over-cap files; on by default with two-tier (warn + error) shared caps.
 resource: src/checks/file-caps.ts
 tags: [hygiene, ci, checks, size]
 ---
 
 # `file-caps`
 
-**Default:** on (two-tier defaults) · **Config:** `overrides` (+ `.repo-hygiene-baseline.json`) · **Opt out:** `enabled: false`
+**Default:** on (two-tier defaults) · **Config:** `overrides`, `mode`, `base` (+ `.repo-hygiene-baseline.json` in ratchet mode) · **Opt out:** `enabled: false`
 
 Per-glob file size caps with a migration ramp. Each file takes the **first
 matching** `overrides` entry (most-specific first, first-match-wins — no merge) and
@@ -18,9 +18,10 @@ optional `warn` and `error` tier.
 ## What it flags
 
 - **over `warn`** → a `warn` finding (advisory).
-- **over `error`** → an `error` finding (enforced, drives exit 1) — unless the file
-  is grandfathered at or above its current size in the baseline, in which case it
-  is downgraded to `warn`.
+- **over `error`** → an `error` finding (enforced, drives exit 1) — unless the
+  [mode](#modes) exempts it: in ratchet mode, a file baselined at or above its
+  current size; in grandfather mode, a file already over that cap on the base ref.
+  An exempt file is downgraded to `warn`.
 
 Annotations are **file-level, not line-level**, by design: the finding is that the
 _file_ is over budget, not that any single line is. Under GitHub Actions (the
@@ -73,18 +74,52 @@ A repo's own `overrides` are consulted **first** (they match ahead of the defaul
 per first-match-wins), so you tighten a glob, set a **laxer** `error` cap, or add
 tiers by listing it. Because the defaults now error, a consumer that trips them on
 the next bump rectifies with a one-line override, a baseline adoption
-(`--update-baseline`, which grandfathers existing over-cap files to `warn`), or
+(`--update-baseline`, which baselines existing over-cap files to `warn`),
+`mode: grandfather`, or
 `enabled: false` to turn the check off entirely.
 
-## The baseline ramp (`--update-baseline`)
+## Modes
 
-`file-caps` is the one check with committed migration state,
-`.repo-hygiene-baseline.json`. On adoption, every file already over its hard cap is
-grandfathered at its current size and reported as a `warn` instead of blocking;
-thereafter the baseline **only shrinks** — a file that gets smaller ratchets its
-ceiling down, one that drops under the cap is removed, and one that grows past its
-recorded ceiling loses the grandfather and hard-errors. Each metric is tracked
-independently.
+`mode` sets how files that are already over their `error` cap are treated. Each
+metric (`lines`, `bytes`) is judged independently in every mode.
+
+| `mode`        | Existing over-cap files                                             | State                             |
+| ------------- | ------------------------------------------------------------------- | --------------------------------- |
+| `strict`      | Error, like any other.                                              | None; a baseline file is ignored. |
+| `ratchet`     | Warn while at or under their baselined ceiling, which only shrinks. | `.repo-hygiene-baseline.json`     |
+| `grandfather` | Warn with no ceiling while over cap on the `base` ref.              | None; read from git.              |
+| _(unset)_     | `ratchet` when a baseline file exists, otherwise `strict`.          |                                   |
+
+```yaml
+checks:
+  file-caps:
+    mode: grandfather
+    base: origin/main # grandfather only; this is the default
+```
+
+### Grandfather mode
+
+A file that is over its cap on the `base` ref (default `origin/main`) is exempt:
+it may grow freely and is reported as a `warn`. A file at or under the cap there —
+or absent there, such as a new or renamed file — is enforced. So once a change
+that brings a file under its cap reaches `base`, that file loses its exemption.
+Nothing is committed; the exemptions are read from git on each run, and only for
+files currently over a cap.
+
+The `base` ref must exist locally. `actions/checkout`'s default `fetch-depth: 1`
+does not fetch `origin/main`, so set `fetch-depth: 0` (or fetch the base ref
+explicitly). An unresolvable `base` is an error rather than a silent fallback.
+Grandfather mode also errors if a `.repo-hygiene-baseline.json` is present; delete
+it, or use `mode: ratchet`.
+
+### The baseline ramp (ratchet mode, `--update-baseline`)
+
+Ratchet mode keeps committed migration state, `.repo-hygiene-baseline.json`. On
+adoption, every file already over its hard cap is baselined at its current size
+and reported as a `warn` instead of blocking; thereafter the baseline **only
+shrinks** — a file that gets smaller ratchets its ceiling down, one that drops
+under the cap is removed, and one that grows past its recorded ceiling loses its
+exemption and hard-errors.
 
 Regenerate the baseline with the CLI rather than editing the JSON by hand:
 
@@ -92,8 +127,11 @@ Regenerate the baseline with the CLI rather than editing the JSON by hand:
 ai-repo-hygiene --update-baseline --check --config .repo-hygiene.yml
 ```
 
-With no baseline file present this is first-time **adoption** (grandfather
+With no baseline file present this is first-time **adoption** (baseline
 everything currently over cap); with one present it **ratchets** the existing
-baseline down. A ratchet never _adds_ an entry — the grandfather list can only lose
+baseline down. A ratchet never _adds_ an entry — the baseline can only lose
 entries — so the ramp always tightens toward the caps. Commit the regenerated
 `.repo-hygiene-baseline.json` alongside the change that shifts file sizes.
+
+`--update-baseline` refuses to run under `mode: strict` or `mode: grandfather`,
+which do not use a baseline.

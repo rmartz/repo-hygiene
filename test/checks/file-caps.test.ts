@@ -63,7 +63,7 @@ describe('evaluateFileCaps', () => {
       {
         check: 'file-caps',
         path: 'a.ts',
-        message: '500 lines over the 480-lines cap (grandfathered at 500)',
+        message: '500 lines over the 480-lines cap (baselined at 500)',
         severity: 'warn',
       },
     ]);
@@ -83,5 +83,27 @@ describe('evaluateFileCaps', () => {
 
   it('leaves an unmatched file uncapped', () => {
     expect(evaluateFileCaps([metric('README.txt', 9999)], overrides, {})).toEqual([]);
+  });
+
+  it('exempts a metric over cap on the base ref, with no ceiling', () => {
+    const grandfathered = { base: 'origin/main', overCap: { 'a.ts': { lines: 500 } } };
+    const findings = evaluateFileCaps([metric('a.ts', 900)], overrides, {}, grandfathered);
+    expect(findings).toEqual([
+      {
+        check: 'file-caps',
+        path: 'a.ts',
+        message: '900 lines over the 480-lines cap (grandfathered: 500 on origin/main)',
+        severity: 'warn',
+      },
+    ]);
+  });
+
+  it('enforces a metric the base ref did not have over cap', () => {
+    const entries: OverrideEntry[] = [
+      { glob: '**/*', lines: { error: 100 }, bytes: { error: 1000 } },
+    ];
+    const grandfathered = { base: 'origin/main', overCap: { 'a.md': { lines: 150 } } };
+    const findings = evaluateFileCaps([metric('a.md', 150, 2000)], entries, {}, grandfathered);
+    expect(findings.map((f) => f.severity)).toEqual(['warn', 'error']);
   });
 });
