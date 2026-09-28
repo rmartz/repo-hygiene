@@ -63,7 +63,7 @@ describe('evaluateFileCaps', () => {
       {
         check: 'file-caps',
         path: 'a.ts',
-        message: '500 lines over the 480-lines cap (grandfathered at 500)',
+        message: '500 lines over the 480-lines cap (baselined at 500)',
         severity: 'warn',
       },
     ]);
@@ -99,7 +99,9 @@ describe('evaluateFileCaps', () => {
   });
 
   it('enforces a metric the base ref did not have over cap', () => {
-    const entries: OverrideEntry[] = [{ glob: '**/*', lines: { error: 100 }, bytes: { error: 1000 } }];
+    const entries: OverrideEntry[] = [
+      { glob: '**/*', lines: { error: 100 }, bytes: { error: 1000 } },
+    ];
     const grandfathered = { base: 'origin/main', overCap: { 'a.md': { lines: 150 } } };
     const findings = evaluateFileCaps([metric('a.md', 150, 2000)], entries, {}, grandfathered);
     expect(findings.map((f) => f.severity)).toEqual(['warn', 'error']);

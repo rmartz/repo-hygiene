@@ -44,8 +44,9 @@ departure from the nudge-don't-break posture above. A fleet-wide size standard i
 only worth having if it actually gates; the defaults are meant to break loudly so a
 repo notices and responds, rather than accumulating silent warnings forever. The
 break is bounded and self-service: repo `overrides` match **first**, so a consumer
-sets a laxer `error` cap for any glob, grandfathers existing over-cap files into the
-baseline (`--update-baseline`, which downgrades them to `warn`), or opts out with
+sets a laxer `error` cap for any glob, exempts existing over-cap files — via the
+baseline (`--update-baseline`) or `mode: grandfather`, both of which downgrade them
+to `warn` — or opts out with
 `enabled: false` — each a one-line change surfaced by the failing CI run. This is
 the intended exception to "must be safe with no config," accepted for `file-caps`
 alone; a new check does not get to copy it without the same deliberate decision.

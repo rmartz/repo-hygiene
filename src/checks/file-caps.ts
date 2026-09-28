@@ -25,7 +25,7 @@ import { assertBaseRef, readAtBase } from './file-caps-base.js';
  * matching `overrides` entry (most-specific first, first-match-wins — no merge),
  * and is measured on two independent metrics: `lines` and `bytes`. A metric hit
  * is an `error` when over the hard cap, downgraded to `warn` when the file is
- * grandfathered at or above its current size (see `file-caps-baseline.ts`), and
+ * baselined at or above its current size (see `file-caps-baseline.ts`), and
  * a plain `warn` when only over the softer `warn` threshold. Under
  * `mode: grandfather` an over-cap metric is instead exempt (a `warn`, with no
  * ceiling) when the file was already over that cap on the base ref.
@@ -79,13 +79,13 @@ export interface Grandfathered {
   overCap: FileCapsBaseline;
 }
 
-/** Evaluate one metric of one file against its tier and grandfathered ceiling. */
+/** Evaluate one metric of one file against its tier, baselined ceiling, and base-ref exemption. */
 function evalTier(
   path: string,
   metric: Metric,
   value: number,
   tier: Tier,
-  grandfathered: number | undefined,
+  baselined: number | undefined,
   exempt: { base: string; value: number } | undefined,
 ): Finding | null {
   const unit = unitOf(metric);
@@ -98,11 +98,11 @@ function evalTier(
         severity: 'warn',
       };
     }
-    if (grandfathered !== undefined && value <= grandfathered) {
+    if (baselined !== undefined && value <= baselined) {
       return {
         check: NAME,
         path,
-        message: `${value} ${unit} over the ${tier.error}-${metric} cap (grandfathered at ${grandfathered})`,
+        message: `${value} ${unit} over the ${tier.error}-${metric} cap (baselined at ${baselined})`,
         severity: 'warn',
       };
     }
@@ -144,7 +144,9 @@ export function evaluateFileCaps(
       if (!tier) continue;
       const atBase = grandfathered?.overCap[m.path]?.[metric];
       const exempt =
-        grandfathered && atBase !== undefined ? { base: grandfathered.base, value: atBase } : undefined;
+        grandfathered && atBase !== undefined
+          ? { base: grandfathered.base, value: atBase }
+          : undefined;
       const finding = evalTier(m.path, metric, m[metric], tier, baseline[m.path]?.[metric], exempt);
       if (finding) findings.push(finding);
     }
@@ -161,10 +163,10 @@ async function measureAll(mode: Mode, cwd: string): Promise<FileMetrics[]> {
 
 export const fileCapsCheck: Check = {
   name: NAME,
-  description: 'Per-glob line/byte size caps with a grandfather migration ramp.',
+  description: 'Per-glob line/byte size caps with a baseline or grandfather ramp.',
   // Default-on: ships two-tier shared defaults (see file-caps-config) that
   // hard-gate on size. Unlike the other default-on checks it can error on arrival;
-  // a consumer grandfathers via the baseline, overrides the cap, or opts out.
+  // a consumer baselines, sets mode: grandfather, overrides the cap, or opts out.
   defaultOn: true,
   async run(ctx) {
     const entries = resolveFileCapsOverrides(ctx.settings);
@@ -210,7 +212,7 @@ export interface BaselineUpdate {
 
 /**
  * Regenerate the committed baseline. With no baseline file present this is
- * first-time adoption (grandfather everything currently over cap); otherwise it
+ * first-time adoption (baseline everything currently over cap); otherwise it
  * ratchets the existing baseline down. Backs the CLI's `--update-baseline`.
  */
 export async function updateFileCapsBaseline(opts: {
