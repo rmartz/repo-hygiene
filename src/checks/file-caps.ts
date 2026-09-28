@@ -3,18 +3,22 @@ import { resolveFileSet, type Mode } from '../discovery.js';
 import type { Check, CheckConfig, Finding } from '../types.js';
 import {
   METRICS,
+  parseFileCapsMode,
   resolveFileCapsOverrides,
   type Metric,
   type OverrideEntry,
   type Tier,
 } from './file-caps-config.js';
 import {
+  BASELINE_FILENAME,
   buildBaseline,
   loadBaseline,
   ratchetBaseline,
   writeBaseline,
+  type FileCapsBaseline,
   type OverCap,
 } from './file-caps-baseline.js';
+import { assertBaseRef, readAtBase } from './file-caps-base.js';
 
 /**
  * Per-glob file size caps with the migration ramp. Each file takes the first
@@ -22,7 +26,9 @@ import {
  * and is measured on two independent metrics: `lines` and `bytes`. A metric hit
  * is an `error` when over the hard cap, downgraded to `warn` when the file is
  * grandfathered at or above its current size (see `file-caps-baseline.ts`), and
- * a plain `warn` when only over the softer `warn` threshold.
+ * a plain `warn` when only over the softer `warn` threshold. Under
+ * `mode: grandfather` an over-cap metric is instead exempt (a `warn`, with no
+ * ceiling) when the file was already over that cap on the base ref.
  */
 
 const NAME = 'file-caps';
@@ -67,6 +73,12 @@ function collectOverCaps(metrics: FileMetrics[], compiled: CompiledOverride[]): 
 
 const unitOf = (metric: Metric): string => (metric === 'bytes' ? 'B' : 'lines');
 
+/** Base-ref sizes of files over cap there, which `grandfather` mode exempts. */
+export interface Grandfathered {
+  base: string;
+  overCap: FileCapsBaseline;
+}
+
 /** Evaluate one metric of one file against its tier and grandfathered ceiling. */
 function evalTier(
   path: string,
@@ -74,9 +86,18 @@ function evalTier(
   value: number,
   tier: Tier,
   grandfathered: number | undefined,
+  exempt: { base: string; value: number } | undefined,
 ): Finding | null {
   const unit = unitOf(metric);
   if (tier.error !== undefined && value > tier.error) {
+    if (exempt !== undefined) {
+      return {
+        check: NAME,
+        path,
+        message: `${value} ${unit} over the ${tier.error}-${metric} cap (grandfathered: ${exempt.value} on ${exempt.base})`,
+        severity: 'warn',
+      };
+    }
     if (grandfathered !== undefined && value <= grandfathered) {
       return {
         check: NAME,
@@ -103,11 +124,15 @@ function evalTier(
   return null;
 }
 
-/** Findings for `metrics` under `entries`, applying the per-metric baseline ramp. */
+/**
+ * Findings for `metrics` under `entries`, applying the per-metric baseline ramp
+ * and, in `grandfather` mode, the base-ref exemptions.
+ */
 export function evaluateFileCaps(
   metrics: FileMetrics[],
   entries: OverrideEntry[],
-  baseline: Record<string, Partial<Record<Metric, number>>>,
+  baseline: FileCapsBaseline,
+  grandfathered?: Grandfathered,
 ): Finding[] {
   const compiled = compile(entries);
   const findings: Finding[] = [];
@@ -117,7 +142,10 @@ export function evaluateFileCaps(
     for (const metric of METRICS) {
       const tier = entry[metric];
       if (!tier) continue;
-      const finding = evalTier(m.path, metric, m[metric], tier, baseline[m.path]?.[metric]);
+      const atBase = grandfathered?.overCap[m.path]?.[metric];
+      const exempt =
+        grandfathered && atBase !== undefined ? { base: grandfathered.base, value: atBase } : undefined;
+      const finding = evalTier(m.path, metric, m[metric], tier, baseline[m.path]?.[metric], exempt);
       if (finding) findings.push(finding);
     }
   }
@@ -140,13 +168,40 @@ export const fileCapsCheck: Check = {
   defaultOn: true,
   async run(ctx) {
     const entries = resolveFileCapsOverrides(ctx.settings);
+    const { mode, base } = parseFileCapsMode(ctx.settings);
     const cwd = ctx.cwd ?? process.cwd();
     const metrics: FileMetrics[] = [];
     for (const path of ctx.files.paths)
       metrics.push(computeMetrics(path, await ctx.files.read(path)));
-    return evaluateFileCaps(metrics, entries, loadBaseline(cwd) ?? {});
+    const baseline = loadBaseline(cwd);
+    if (mode === 'strict') return evaluateFileCaps(metrics, entries, {});
+    if (mode !== 'grandfather') return evaluateFileCaps(metrics, entries, baseline ?? {});
+    if (baseline !== null) {
+      throw new Error(
+        `file-caps: mode: grandfather does not use ${BASELINE_FILENAME}; delete it or use mode: ratchet`,
+      );
+    }
+    const overCap = await overCapAtBase(metrics, compile(entries), base, cwd);
+    return evaluateFileCaps(metrics, entries, {}, { base, overCap });
   },
 };
+
+/**
+ * Which of the files over cap now were already over cap on `base`, per metric.
+ * Only files over cap now are read at `base` — the rest cannot need exempting.
+ */
+async function overCapAtBase(
+  metrics: FileMetrics[],
+  compiled: CompiledOverride[],
+  base: string,
+  cwd: string,
+): Promise<FileCapsBaseline> {
+  await assertBaseRef(base, cwd);
+  const paths = [...new Set(collectOverCaps(metrics, compiled).map((o) => o.path))];
+  const contents = await readAtBase(paths, base, cwd);
+  const atBase = [...contents].map(([path, text]) => computeMetrics(path, text));
+  return buildBaseline(collectOverCaps(atBase, compiled));
+}
 
 export interface BaselineUpdate {
   action: 'adopt' | 'ratchet';
@@ -164,6 +219,10 @@ export async function updateFileCapsBaseline(opts: {
   settings: CheckConfig;
 }): Promise<BaselineUpdate> {
   const cwd = opts.cwd ?? process.cwd();
+  const { mode } = parseFileCapsMode(opts.settings);
+  if (mode === 'strict' || mode === 'grandfather') {
+    throw new Error(`file-caps: --update-baseline does not apply to mode: ${mode}`);
+  }
   const entries = resolveFileCapsOverrides(opts.settings);
   const overCaps = collectOverCaps(await measureAll('--check', cwd), compile(entries));
   const existing = loadBaseline(cwd);
