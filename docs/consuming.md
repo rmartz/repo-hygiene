@@ -71,13 +71,21 @@ updates:
 Packages, readable with the built-in `GITHUB_TOKEN` — so the `packages: read`
 permission above is all the workflow needs. No per-repo PAT.
 
+**Pin to a commit with a plain `vX.Y.Z` tag.** Releases up to 3.0.0 were tagged
+`repo-hygiene-vX.Y.Z`, and those prefixed tags are not aliased to plain ones. A
+`# vX.Y.Z` comment on a pre-3.0.0 commit names no tag, so Dependabot never bumps
+it. If your pin predates 3.0.0, move it to a v3.0.0-or-later commit. The opt-in
+[`action-pin-tags`](checks/action-pin-tags.md) check detects stranded comments
+like this.
+
 ## 2. Choose which checks run
 
 The `checks` workflow input decides which checks run. Its behavior changed in
 1.0.0 to derive the default from the package's registry:
 
 - **Omit `checks` entirely** → the reusable workflow runs the **default-on** set —
-  currently every check **except** `package-pins` (`conflict-markers`,
+  currently every check **except** the opt-in `package-pins` and
+  `action-pin-tags` (`conflict-markers`,
   `action-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) —
   and a newly-added default-on check **auto-joins** on your next Dependabot bump
   with no edit to your caller. This is the recommended default. Three of them
@@ -85,7 +93,7 @@ The `checks` workflow input decides which checks run. Its behavior changed in
   without failing CI until you opt into `severity: error` (section 3).
 - **Set `checks: <names>`** → runs **exactly** those checks. This pins the set:
   you manage the list, and you forfeit auto-join for future default-on checks. To
-  add the opt-in `package-pins` (or drop a default-on check), name the full set
+  add an opt-in check like `package-pins` (or drop a default-on check), name the full set
   you want.
 
 ```yaml
@@ -110,6 +118,7 @@ the owning check:
 | ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `conflict-markers` | on        | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                           |
 | `action-pins`      | on        | none                                                                                                                                                                                                                                 |
+| `action-pin-tags`  | opt-in    | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                              |
 | `package-pins`     | opt-in    | none                                                                                                                                                                                                                                 |
 | `docs-links`       | on        | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (also validate `#fragment` targets, bool); `anchorExempt`                                                                             |
 | `md-pairing`       | on (warn) | `wrapper` (require each `CLAUDE.md` be a bare import line; `true` → `@AGENTS.md`, or a custom string)                                                                                                                                |

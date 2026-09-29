@@ -64,3 +64,14 @@ default-on, because promoting it would break consumers whose `package.json` uses
 abbreviated ranges — exactly the on-arrival breakage this contract forbids.
 Config-free is necessary but not sufficient for default-on; making it a fleet
 default is a separate, deliberate decision.
+
+## Network-dependent checks stay opt-in
+
+The default-on set is tree-only: `git ls-files` and file reads, with no history and
+no network. That cost model is part of what makes a check safe on any consumer. A
+check that needs the network, such as
+[`action-pin-tags`](checks/action-pin-tags.md), resolves tags upstream. It is
+therefore never default-on, and it degrades to a `warn`-and-skip when the network
+or auth is unavailable rather than failing. Keep the network check separate from
+the offline check it extends, rather than adding a network flag to that check,
+so the default-on check stays offline and honest about its scope.

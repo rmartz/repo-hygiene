@@ -71,7 +71,7 @@ the [consumer guide](docs/consuming.md) for the full reference.
 
 ## Checks
 
-`conflict-markers`, `action-pins`, `package-pins`, `docs-links`, `md-links`,
+`conflict-markers`, `action-pins`, `action-pin-tags`, `package-pins`, `docs-links`, `md-links`,
 `md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps` — see
 [docs/checks/](docs/checks/index.md).
 
