@@ -86,7 +86,11 @@ describe('evaluateFileCaps', () => {
   });
 
   it('exempts a metric over cap on the base ref, with no ceiling', () => {
-    const grandfathered = { mode: 'grandfather', base: 'origin/main', overCap: { 'a.ts': { lines: 500 } } } as const;
+    const grandfathered = {
+      mode: 'grandfather',
+      base: 'origin/main',
+      overCap: { 'a.ts': { lines: 500 } },
+    } as const;
     const findings = evaluateFileCaps([metric('a.ts', 900)], overrides, {}, grandfathered);
     expect(findings).toEqual([
       {
@@ -102,7 +106,11 @@ describe('evaluateFileCaps', () => {
     const entries: OverrideEntry[] = [
       { glob: '**/*', lines: { error: 100 }, bytes: { error: 1000 } },
     ];
-    const grandfathered = { mode: 'grandfather', base: 'origin/main', overCap: { 'a.md': { lines: 150 } } } as const;
+    const grandfathered = {
+      mode: 'grandfather',
+      base: 'origin/main',
+      overCap: { 'a.md': { lines: 150 } },
+    } as const;
     const findings = evaluateFileCaps([metric('a.md', 150, 2000)], entries, {}, grandfathered);
     expect(findings.map((f) => f.severity)).toEqual(['warn', 'error']);
   });
