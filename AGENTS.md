@@ -117,6 +117,17 @@ default-safety bar is strict.
   the release runs on **Node 24** — keep it there (on Node 22 the publish fails
   with `ENEEDAUTH` _after_ the tag exists). A tag whose publish failed is
   backfilled by dispatching `release.yml` with `tag: vX.Y.Z`.
+- **The release toolchain lives in
+  [semantic-release-ci](https://github.com/rmartz/semantic-release-ci).**
+  `release.yml`'s release job calls its shared workflow (pinned by SHA, bumped by
+  Dependabot), which runs on Node 24 and fails before tagging if npm is too old
+  for trusted publishing. The required `release-check / release-check` check
+  proves `.releaserc.json` still works with that toolchain on every PR. The
+  toolchain (`semantic-release`, its plugins, the changelog preset) is **not** in
+  this repo's `package.json` — never add it back, and never reintroduce a
+  `semantic-release --dry-run` job as a release guard: on a PR it exits before
+  rendering notes, so it passes without testing anything. The backfill job stays
+  local, in `release.yml`, because the npm trusted publisher is tied to that file.
 - **The reusable workflow is moving out (#45).** `hygiene.yml` is migrating to the
   standalone `rmartz/repo-hygiene-action` repo, which keeps its installed CLI
   version current via Dependabot. This repo is becoming CLI-only; the in-repo

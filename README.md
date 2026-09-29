@@ -109,9 +109,11 @@ releasable conventional commit (`feat`/`fix`/…) publishes the `@rmartz/repo-hy
 CLI to npmjs (public, via OIDC trusted publishing with provenance), tags
 `v<version>`, and cuts a GitHub Release — no release PR and no npm token. Versions
 up to 7.0.1 were published to GitHub Packages and stay there for existing pins;
-new versions go to npmjs only. A `Release dry-run` CI job validates the semantic-release config (that
-the changelog toolchain renders) on every PR, so a broken release setup is caught
-before merge rather than on the post-merge release run. The reusable workflow that
+new versions go to npmjs only. Releases run through the fleet's shared
+[semantic-release-ci](https://github.com/rmartz/semantic-release-ci) workflows,
+whose required `release-check / release-check` check renders the release notes
+with the shared toolchain on every PR, so a broken release setup is caught before
+merge rather than on the post-merge release run. The reusable workflow that
 installs this CLI is moving to the separate
 [`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action) repo
 (see [#45](https://github.com/rmartz/repo-hygiene/issues/45)).

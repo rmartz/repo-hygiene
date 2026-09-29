@@ -1,6 +1,9 @@
 name: Release
 
-# Automated CLI releases via semantic-release. On every push to main it analyses
+# Automated CLI releases via semantic-release, run by the fleet's shared workflow
+# (rmartz/semantic-release-ci), whose toolchain (semantic-release, its plugins and
+# the changelog preset) is tested there before a bump reaches this pin; the
+# options stay here in .releaserc.json. On every push to main it analyses
 # the conventional commits since the last release and, when there is a releasable
 # change, publishes @rmartz/repo-hygiene to npmjs (public), creates the GitHub
 # Release with generated notes, and tags v<version>. It does NOT commit anything
@@ -19,6 +22,8 @@ name: Release
 # does not link that bundled copy into node_modules/.bin — so the publish uses
 # the runner's npm. On Node 22 (npm 10) it fails with ENEEDAUTH after the tag and
 # GitHub Release were already created, which is how v7.1.0 was tagged unpublished.
+# The shared release workflow defaults to Node 24 and, because this workflow
+# grants `id-token: write`, fails before tagging if npm is older.
 #
 # `workflow_dispatch` with a `tag` backfills such a tag: it builds that tag's
 # tree and publishes it under the tag's version. It is part of this file (not a
@@ -47,23 +52,15 @@ permissions:
   pull-requests: write # semantic-release comments on released PRs
 
 jobs:
+  # The shared workflow declares no permissions of its own; it runs with the
+  # workflow-level ones above. It also serializes releases per repository.
   release:
-    name: Release
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # semantic-release needs full history + tags
-          persist-credentials: false # semantic-release authenticates via GITHUB_TOKEN below
-      - uses: ./.github/actions/setup
-        with:
-          node-version: '24'
-      - run: pnpm build
-      - run: pnpm exec semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: rmartz/semantic-release-ci/.github/workflows/semantic-release.yml@dbcbcd8e0425ae4c0aa294d6595566ac4643a83d # v1.1.0
+    with:
+      # Build dist/ before @semantic-release/npm packs it; the shared workflow
+      # installs this repo's dependencies (pnpm, frozen lockfile) first.
+      build-command: pnpm build
 
   backfill:
     name: Publish existing tag
