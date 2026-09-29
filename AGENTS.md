@@ -2,9 +2,10 @@
 
 This repo is the standalone home of `@rmartz/repo-hygiene`: a suite of low-cost
 CI checks (conflict markers, GitHub Actions SHA pins, package pins, docs link
-integrity, OKF frontmatter, file-size caps, AGENTS/CLAUDE pairing) plus the
-**reusable workflow** (`.github/workflows/hygiene.yml`) that distributes them to
-consuming repos, pinned by version and kept current by Dependabot. See
+integrity, OKF frontmatter, file-size caps, AGENTS/CLAUDE pairing), published as
+a CLI to npmjs. Consumers run it through the separate
+[`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action)
+GitHub Action, pinned by version and kept current by Dependabot. See
 [README.md](README.md) and the [documentation](docs/index.md).
 
 ## Documentation — update it as part of every task
@@ -37,8 +38,9 @@ PR. Bootstrap (`ai-ensure-*`) is a one-time new-repo **starter**, not an ongoing
 manager — do not defer a fix to a bootstrap re-run, and do not treat a `.github/`
 file as off-limits just because bootstrap once seeded it.
 
-- **Updates arrive the self-updating way:** the reusable-workflow caller
-  (`repo-hygiene.yml`) is pinned and bumped by Dependabot; the CI checks
+- **Updates arrive the self-updating way:** the hygiene caller
+  (`repo-hygiene.yml`, which runs `rmartz/repo-hygiene-action`) is pinned and
+  bumped by Dependabot; the CI checks
   (incl. PR-title lint + the `commit-convention` tripwire), labels, hardened
   `dependabot.yml`, and squash-merge setting are already in place and owned here.
 - `ai-ensure-labels` / `ai-verify-squash-setting` are still useful one-shot
@@ -128,10 +130,10 @@ default-safety bar is strict.
   `semantic-release --dry-run` job as a release guard: on a PR it exits before
   rendering notes, so it passes without testing anything. The backfill job stays
   local, in `release.yml`, because the npm trusted publisher is tied to that file.
-- **The reusable workflow is moving out (#45).** `hygiene.yml` is migrating to the
-  standalone `rmartz/repo-hygiene-action` repo, which keeps its installed CLI
-  version current via Dependabot. This repo is becoming CLI-only; the in-repo
-  `hygiene.yml` is frozen and slated for removal at the cutover.
+- **This repo is CLI-only (#45).** Distribution lives in
+  `rmartz/repo-hygiene-action`, which pins this CLI as a dependency and
+  re-releases itself when Dependabot bumps it. Do not add a reusable workflow
+  or Action back here; consumer-facing wiring changes belong in that repo.
 
 ## Agent directive files
 

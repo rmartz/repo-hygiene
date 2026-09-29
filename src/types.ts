@@ -76,8 +76,8 @@ export interface Check {
    * no configuration on an arbitrary repo: it does something universally correct
    * with sane defaults and cannot break an unconfigured consumer's CI on arrival.
    * Omitted (falsy) means **opt-in** — the check ships in the registry but only
-   * runs when a repo names it in the workflow's `checks` input. The reusable
-   * workflow's default derives from this flag (see `registry.defaultNames`), so a
+   * runs when a repo names it in the Action's `checks` input. The Action's
+   * empty default derives from this flag (see `registry.defaultNames`), so a
    * new default-on check auto-joins the default; it is not hardcoded in the YAML.
    */
   defaultOn?: boolean;

@@ -38,7 +38,7 @@ export interface Registry {
   /**
    * Names of the **default-on** checks (`defaultOn === true`), in registration
    * order. This is the set the CLI runs when no checks are named, and the set the
-   * reusable workflow's empty `checks` default resolves to — so a new default-on
+   * Action's empty `checks` default resolves to — so a new default-on
    * check auto-joins consumers with no YAML edit.
    */
   defaultNames(): string[];

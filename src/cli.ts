@@ -7,8 +7,7 @@
 //   ai-repo-hygiene --update-baseline [--check] [--config <path>]
 //
 // With no check name it runs the registry's default-on set (the universally-safe
-// checks — the same set the reusable workflow's empty `checks` default resolves
-// to); `--all` runs every registered check; naming one or more runs just those
+// checks — the same set the Action's empty `checks` default resolves to); `--all` runs every registered check; naming one or more runs just those
 // (independent per-check statuses). Mode
 // defaults to `--staged`. `--format` is `text` (default; report on stderr) or
 // `github` (workflow-command annotations on stdout); when omitted it

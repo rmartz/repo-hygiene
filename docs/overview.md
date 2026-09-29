@@ -22,8 +22,7 @@ ai-repo-hygiene --update-baseline [--check] [--config <path>]
 ```
 
 - **No check name** runs the registry's **default-on** set (the universally-safe
-  checks — the same set the reusable workflow's empty `checks` default resolves
-  to).
+  checks — the same set the Action's empty `checks` default resolves to).
 - **`--all`** runs every registered check.
 - **Naming one or more** checks runs just those, with independent per-check
   statuses (`ai-repo-hygiene okf docs-links --check`).
