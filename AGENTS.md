@@ -113,7 +113,10 @@ default-safety bar is strict.
   commit-back, no PAT. npm auth is OIDC trusted publishing tied to the
   `release.yml` filename, so there is no `NPM_TOKEN`; renaming that workflow
   breaks publishing until the trusted publisher on npmjs is updated. See #45 for
-  the split from release-please and why.
+  the split from release-please and why. OIDC publishing needs npm >= 11.5.1, so
+  the release runs on **Node 24** — keep it there (on Node 22 the publish fails
+  with `ENEEDAUTH` _after_ the tag exists). A tag whose publish failed is
+  backfilled by dispatching `release.yml` with `tag: vX.Y.Z`.
 - **The reusable workflow is moving out (#45).** `hygiene.yml` is migrating to the
   standalone `rmartz/repo-hygiene-action` repo, which keeps its installed CLI
   version current via Dependabot. This repo is becoming CLI-only; the in-repo
