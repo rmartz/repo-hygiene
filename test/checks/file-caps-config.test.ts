@@ -132,21 +132,23 @@ describe('resolveFileCapsOverrides', () => {
 });
 
 describe('parseFileCapsMode', () => {
-  it('leaves mode unset (implicit ratchet-or-strict) and defaults base to origin/main', () => {
+  it('leaves mode unset (implicit baseline-or-strict) and defaults base to origin/main', () => {
     expect(parseFileCapsMode({})).toEqual({ base: 'origin/main' });
   });
 
   it('accepts each mode', () => {
-    for (const mode of ['strict', 'ratchet', 'grandfather'] as const) {
+    for (const mode of ['strict', 'ratchet', 'grandfather', 'baseline'] as const) {
       expect(parseFileCapsMode({ mode }).mode).toBe(mode);
     }
   });
 
-  it('accepts a custom base for grandfather mode', () => {
-    expect(parseFileCapsMode({ mode: 'grandfather', base: 'origin/develop' })).toEqual({
-      mode: 'grandfather',
-      base: 'origin/develop',
-    });
+  it('accepts a custom base for the base-ref modes', () => {
+    for (const mode of ['grandfather', 'ratchet'] as const) {
+      expect(parseFileCapsMode({ mode, base: 'origin/develop' })).toEqual({
+        mode,
+        base: 'origin/develop',
+      });
+    }
   });
 
   it('rejects an unknown mode', () => {
@@ -159,9 +161,11 @@ describe('parseFileCapsMode', () => {
     }
   });
 
-  it('rejects base outside grandfather mode', () => {
-    expect(() => parseFileCapsMode({ mode: 'ratchet', base: 'origin/main' })).toThrow(
-      /only applies to mode: grandfather/,
-    );
+  it('rejects base outside the base-ref modes', () => {
+    for (const mode of ['strict', 'baseline', undefined]) {
+      expect(() => parseFileCapsMode({ mode, base: 'origin/main' })).toThrow(
+        /only applies to mode: ratchet or grandfather/,
+      );
+    }
   });
 });

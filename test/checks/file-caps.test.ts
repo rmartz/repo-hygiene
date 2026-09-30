@@ -86,7 +86,11 @@ describe('evaluateFileCaps', () => {
   });
 
   it('exempts a metric over cap on the base ref, with no ceiling', () => {
-    const grandfathered = { base: 'origin/main', overCap: { 'a.ts': { lines: 500 } } };
+    const grandfathered = {
+      mode: 'grandfather',
+      base: 'origin/main',
+      overCap: { 'a.ts': { lines: 500 } },
+    } as const;
     const findings = evaluateFileCaps([metric('a.ts', 900)], overrides, {}, grandfathered);
     expect(findings).toEqual([
       {
@@ -102,8 +106,60 @@ describe('evaluateFileCaps', () => {
     const entries: OverrideEntry[] = [
       { glob: '**/*', lines: { error: 100 }, bytes: { error: 1000 } },
     ];
-    const grandfathered = { base: 'origin/main', overCap: { 'a.md': { lines: 150 } } };
+    const grandfathered = {
+      mode: 'grandfather',
+      base: 'origin/main',
+      overCap: { 'a.md': { lines: 150 } },
+    } as const;
     const findings = evaluateFileCaps([metric('a.md', 150, 2000)], entries, {}, grandfathered);
     expect(findings.map((f) => f.severity)).toEqual(['warn', 'error']);
+  });
+
+  describe('ratchet from the base ref', () => {
+    const ratchet = {
+      mode: 'ratchet',
+      base: 'origin/main',
+      overCap: { 'a.ts': { lines: 500 } },
+    } as const;
+
+    it('warns while a metric is at or under its size on the base ref', () => {
+      expect(evaluateFileCaps([metric('a.ts', 500)], overrides, {}, ratchet)).toEqual([
+        {
+          check: 'file-caps',
+          path: 'a.ts',
+          message: '500 lines over the 480-lines cap (ratchet: 500 on origin/main)',
+          severity: 'warn',
+        },
+      ]);
+    });
+
+    it('errors when a metric grows past its size on the base ref', () => {
+      expect(evaluateFileCaps([metric('a.ts', 501)], overrides, {}, ratchet)).toEqual([
+        {
+          check: 'file-caps',
+          path: 'a.ts',
+          message: '501 lines exceeds the 480-lines cap and its 500 on origin/main',
+          severity: 'error',
+        },
+      ]);
+    });
+
+    it('enforces a file or metric the base ref did not have over cap', () => {
+      const entries: OverrideEntry[] = [
+        { glob: '**/*', lines: { error: 100 }, bytes: { error: 1000 } },
+      ];
+      const atBase = { mode: 'ratchet', base: 'b', overCap: { 'a.md': { lines: 150 } } } as const;
+      const findings = evaluateFileCaps(
+        [metric('a.md', 150, 2000), metric('new.md', 150)],
+        entries,
+        {},
+        atBase,
+      );
+      expect(findings.map((f) => [f.path, f.severity])).toEqual([
+        ['a.md', 'warn'],
+        ['a.md', 'error'],
+        ['new.md', 'error'],
+      ]);
+    });
   });
 });

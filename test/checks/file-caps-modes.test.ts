@@ -8,7 +8,7 @@ import { BASELINE_FILENAME } from '../../src/checks/file-caps-baseline.js';
 import type { CheckConfig } from '../../src/types.js';
 
 // Integration tests for `mode`, run against a real temporary git repo so the
-// grandfather mode's base-ref reads go through git.
+// base-ref modes' (ratchet, grandfather) reads go through git.
 
 const lines = (n: number): string => 'x\n'.repeat(n);
 const caps = { overrides: [{ glob: '**/*.ts', lines: { error: 10 } }] };
@@ -63,7 +63,7 @@ describe('file-caps mode: grandfather', () => {
 
   it('errors when the base ref cannot be resolved', async () => {
     await expect(run({ ...caps, mode: 'grandfather', base: 'origin/nope' })).rejects.toThrow(
-      /cannot resolve base ref "origin\/nope"/,
+      /mode: grandfather cannot resolve base ref "origin\/nope"/,
     );
   });
 
@@ -75,20 +75,52 @@ describe('file-caps mode: grandfather', () => {
   });
 });
 
-describe('file-caps mode: strict / ratchet', () => {
+describe('file-caps mode: ratchet', () => {
+  it('caps files over cap on the base ref at their size there and enforces new ones', async () => {
+    expect(await run({ ...caps, mode: 'ratchet', base: 'base' })).toEqual({
+      'big.ts': 'error', // grew from 20 to 40 lines
+      'shrunk.ts': 'warn', // 15 <= 20 on the base ref
+      'new.ts': 'error',
+    });
+  });
+
+  it('lowers the ceiling once a smaller size reaches the base ref', async () => {
+    write('shrunk.ts', lines(12));
+    git('add', 'shrunk.ts');
+    git('commit', '-qm', 'shrink');
+    git('branch', '-f', 'base');
+    write('shrunk.ts', lines(15));
+    expect((await run({ ...caps, mode: 'ratchet', base: 'base' }))['shrunk.ts']).toBe('error');
+  });
+
+  it('defaults base to origin/main and errors when it cannot be resolved', async () => {
+    await expect(run({ ...caps, mode: 'ratchet' })).rejects.toThrow(
+      /mode: ratchet cannot resolve base ref "origin\/main"/,
+    );
+  });
+
+  it('errors when a baseline file is present, pointing at mode: baseline', async () => {
+    write(BASELINE_FILENAME, '{"file-caps":{}}\n');
+    await expect(run({ ...caps, mode: 'ratchet', base: 'base' })).rejects.toThrow(
+      /mode: ratchet does not use \.repo-hygiene-baseline\.json.*mode: baseline/,
+    );
+  });
+});
+
+describe('file-caps mode: strict / baseline', () => {
   beforeEach(() => write(BASELINE_FILENAME, '{"file-caps":{"big.ts":{"lines":40}}}\n'));
 
   it('strict ignores the baseline file', async () => {
     expect((await run({ ...caps, mode: 'strict' }))['big.ts']).toBe('error');
   });
 
-  it('ratchet (and unset mode) honor the baseline file', async () => {
-    expect((await run({ ...caps, mode: 'ratchet' }))['big.ts']).toBe('warn');
+  it('baseline (and unset mode) honor the baseline file', async () => {
+    expect((await run({ ...caps, mode: 'baseline' }))['big.ts']).toBe('warn');
     expect((await run(caps))['big.ts']).toBe('warn');
   });
 
   it('--update-baseline refuses the modes that do not use a baseline', async () => {
-    for (const mode of ['strict', 'grandfather']) {
+    for (const mode of ['strict', 'ratchet', 'grandfather']) {
       await expect(
         updateFileCapsBaseline({ cwd: dir, mode: '--check', settings: { ...caps, mode } }),
       ).rejects.toThrow(/does not apply to mode/);

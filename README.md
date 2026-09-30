@@ -107,7 +107,8 @@ node dist/bin/repo-hygiene.js --check
 The CLI (`ai-repo-hygiene`) supports `--staged` (pre-commit), `--check` (all
 tracked files), and `--check-diff` (files changed vs `origin/main`); pass check
 names to restrict the run, `--config <path>` to point at a config, and
-`--update-baseline` to refresh the `file-caps` ratchet baseline.
+`--update-baseline` to refresh the committed `file-caps` baseline (legacy
+`mode: baseline`).
 
 ## Releases
 

@@ -23,7 +23,7 @@ pre-commit/husky hook.
 
 **A local install is an optional enhancement** for fast feedback while you edit —
 running the checks (or `--staged` over just your changed files) before you push,
-and ratcheting the `file-caps` baseline (section 4). It never changes what CI
+and, in the legacy baseline mode, ratcheting the `file-caps` baseline (section 4). It never changes what CI
 enforces. If you want it, add `@rmartz/repo-hygiene` as a devDependency (current
 versions are public on npmjs, so no `.npmrc` scope mapping or token is needed) and
 wire your own scripts or hook; otherwise skip straight to section 1 and stay
@@ -174,13 +174,18 @@ checks:
 `file-caps` needs a plan for files already over a hard cap. Pick a
 [mode](checks/file-caps.md#modes):
 
+- **`mode: ratchet`** (recommended) — no committed state. Files over cap on
+  `origin/main` are reported as warnings while no larger than they are there, and
+  error once they grow; everything else is enforced. Each merge that shrinks a
+  file lowers its ceiling automatically. CI must fetch `origin/main`
+  (`actions/checkout` with `fetch-depth: 0`).
 - **`mode: grandfather`** — no committed state. Files over cap on `origin/main` are
   exempt (reported as warnings, with no ceiling); everything else is enforced, and
-  a file loses its exemption once it is under cap on `origin/main`. CI must fetch
-  `origin/main` (`actions/checkout` with `fetch-depth: 0`).
-- **Ratchet (the default when a baseline file exists)** — baseline every file
-  already over a hard cap at its current size, so the check reports them as
-  warnings instead of blocking:
+  a file loses its exemption once it is under cap on `origin/main`. Same
+  `fetch-depth: 0` requirement.
+- **`mode: baseline`** (legacy; the default when a baseline file exists) — baseline
+  every file already over a hard cap at its current size, so the check reports them
+  as warnings instead of blocking:
 
 ```bash
 ai-repo-hygiene --update-baseline --check --config .repo-hygiene.yml
