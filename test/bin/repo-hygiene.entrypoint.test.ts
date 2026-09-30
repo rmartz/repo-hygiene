@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 // The entrypoint bug (#67) only manifests in a real process launched through a
 // symlink, so these tests exercise the *built* artifact — the same file a
-// consumer's `node_modules/.bin/ai-repo-hygiene` shim points at. The Test CI job
+// consumer's `node_modules/.bin/repo-hygiene` shim points at. The Test CI job
 // does not build, and a stale dist/ could mask a reintroduced guard, so the
 // build is provisioned here rather than assumed.
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
@@ -25,7 +25,7 @@ const temp = (prefix: string): string => {
  * the module's realpath. `process.argv[1]` is then the link, not the target.
  */
 const runViaSymlink = (args: string[], cwd: string) => {
-  const link = join(temp('hygiene-bin-'), 'ai-repo-hygiene');
+  const link = join(temp('hygiene-bin-'), 'repo-hygiene');
   symlinkSync(built, link);
   return spawnSync(process.execPath, [link, ...args], { cwd, encoding: 'utf8' });
 };

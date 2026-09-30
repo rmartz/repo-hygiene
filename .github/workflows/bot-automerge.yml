@@ -1,5 +1,4 @@
-# Thin caller of the rmartz/bot-automerge-action composite Action (extracted from
-# the ai-tools golden auto-merge, see rmartz/bot-automerge-action). It enables
+# Thin caller of the rmartz/bot-automerge-action composite Action. It enables
 # GitHub-native auto-merge for trustworthy bot PRs — Dependabot patch/minor bumps
 # and release PRs — gated on the required checks (including merge-safety), so
 # nothing merges ahead of CI. The `@<sha>` pin is bumped by Dependabot.

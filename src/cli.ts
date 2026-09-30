@@ -1,10 +1,10 @@
-// Argument parsing and the run pipeline behind the `ai-repo-hygiene` bin. The
+// Argument parsing and the run pipeline behind the `repo-hygiene` bin. The
 // bin itself is a bare wrapper that always executes this `main` — keeping the
 // logic here is what lets tests import `parseArgs`/`resolveOnly` without the
 // bin needing an entrypoint guard (see src/bin/repo-hygiene.ts and #67).
 //
-//   ai-repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <path>] [--format <fmt>]
-//   ai-repo-hygiene --update-baseline [--check] [--config <path>]
+//   repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <path>] [--format <fmt>]
+//   repo-hygiene --update-baseline [--check] [--config <path>]
 //
 // With no check name it runs the registry's default-on set (the universally-safe
 // checks — the same set the Action's empty `checks` default resolves to); `--all` runs every registered check; naming one or more runs just those
@@ -25,7 +25,7 @@ import type { Mode } from './discovery.js';
 const MODES: readonly Mode[] = ['--staged', '--check', '--check-diff'];
 const FORMATS: readonly ReportFormat[] = ['text', 'github'];
 const USAGE =
-  'usage: ai-repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <path>] [--format text|github] [--update-baseline]';
+  'usage: repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <path>] [--format text|github] [--update-baseline]';
 
 export interface ParsedArgs {
   mode: Mode;

@@ -1,8 +1,7 @@
 import type { Check, Finding } from '../types.js';
 
 /**
- * GitHub Actions SHA-pin conformance — ported from ai-tools'
- * `scripts/check-action-pins.ts`. Every external action referenced under
+ * GitHub Actions SHA-pin conformance. Every external action referenced under
  * `.github/` must be pinned to a full 40-char commit SHA with a full-semver
  * version comment (`uses: owner/repo@<sha> # v7.0.0`), never a mutable tag: a
  * tag can be force-moved by a compromised upstream to run code with our token,

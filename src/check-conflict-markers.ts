@@ -10,7 +10,7 @@ import { resolveFileSet, type ContentReader, type Mode, type ScanOptions } from 
  *
  * The file-set discovery it once owned now lives in `discovery.ts`, shared with
  * the check framework (#164); this module keeps the pure detector plus the
- * standalone `checkConflictMarkers` entrypoint the `ai-check-conflict-markers`
+ * standalone `checkConflictMarkers` entrypoint the `check-conflict-markers`
  * CLI wraps. The framework adapter lives in `checks/conflict-markers.ts`.
  *
  * Detection (full-triple, no doc special-casing): a file is flagged **only**

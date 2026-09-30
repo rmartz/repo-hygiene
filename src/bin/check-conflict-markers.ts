@@ -5,7 +5,7 @@
 // Modes (default `--staged`): scan staged blobs (pre-commit hook), `--check`
 // (all tracked files — the CI backstop), `--check-diff` (files changed vs
 // origin/main). `-C`/`--cwd <dir>` runs the git scan in that directory, so a
-// caller that cannot pin its cwd never needs `cd <dir> && ai-check-conflict-markers`.
+// caller that cannot pin its cwd never needs `cd <dir> && check-conflict-markers`.
 // Exit 0 when clean, 1 when markers are found, 2 on unknown mode.
 import { checkConflictMarkers, formatReport } from '../check-conflict-markers.js';
 import type { Mode } from '../discovery.js';
@@ -22,7 +22,7 @@ async function main(): Promise<number> {
     else if (a !== undefined && MODES.includes(a as Mode)) mode = a as Mode;
     else {
       console.error(`unknown argument: ${a}`);
-      console.error('usage: ai-check-conflict-markers [--staged|--check|--check-diff] [-C <dir>]');
+      console.error('usage: check-conflict-markers [--staged|--check|--check-diff] [-C <dir>]');
       return 2;
     }
   }

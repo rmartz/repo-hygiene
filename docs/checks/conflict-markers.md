@@ -40,5 +40,5 @@ escape hatch. The CI backstop (`--check`) has no bypass.
 ## Related
 
 The pure detector lives in `src/check-conflict-markers.ts` and is also exposed
-through the standalone `ai-check-conflict-markers` CLI; this check is the thin
+through the standalone `check-conflict-markers` CLI; this check is the thin
 framework adapter over it.

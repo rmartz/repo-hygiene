@@ -197,7 +197,7 @@ checks:
   as warnings instead of blocking:
 
 ```bash
-ai-repo-hygiene --update-baseline --check --config .repo-hygiene.yml
+repo-hygiene --update-baseline --check --config .repo-hygiene.yml
 ```
 
 Commit the generated `.repo-hygiene-baseline.json`. From then on the baseline
