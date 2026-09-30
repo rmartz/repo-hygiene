@@ -98,7 +98,7 @@ const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,c
  * departure from the usual warn-on-arrival posture (see
  * `docs/distribution-contract.md`): the change is meant to break loudly in a
  * consumer's CI on the next bump, and the consumer rectifies by grandfathering
- * existing over-cap files into the baseline (`--update-baseline`), setting a laxer
+ * existing over-cap files (`mode: ratchet` or `grandfather`), setting a laxer
  * `error` cap for a glob in `.repo-hygiene.yml` (repo overrides match first), or
  * opting out with `enabled: false`.
  *
@@ -179,20 +179,27 @@ export function resolveFileCapsOverrides(settings: CheckConfig): OverrideEntry[]
 }
 
 /**
- * How over-cap files are treated. `strict` enforces every cap; `ratchet` honors
- * the committed baseline (`.repo-hygiene-baseline.json`); `grandfather` exempts
- * any file already over its cap on the `base` ref, with no committed state.
- * Unset keeps the historical behavior: ratchet when a baseline file exists,
- * otherwise strict.
+ * How over-cap files are treated. `strict` enforces every cap; `ratchet` caps
+ * each file that is over cap on the `base` ref at its size there, so a merge that
+ * shrinks it lowers its ceiling; `grandfather` exempts any file already over its
+ * cap on `base`, with no ceiling; `baseline` (legacy) honors the committed
+ * `.repo-hygiene-baseline.json`. Unset keeps the historical behavior: `baseline`
+ * when that file exists, otherwise strict.
  */
-export const FILE_CAPS_MODES = ['strict', 'ratchet', 'grandfather'] as const;
+export const FILE_CAPS_MODES = ['strict', 'ratchet', 'grandfather', 'baseline'] as const;
 export type FileCapsMode = (typeof FILE_CAPS_MODES)[number];
+
+/** The modes that read file sizes from the `base` ref. */
+export const BASE_REF_MODES = ['ratchet', 'grandfather'] as const;
+export type BaseRefMode = (typeof BASE_REF_MODES)[number];
+export const isBaseRefMode = (mode: FileCapsMode | undefined): mode is BaseRefMode =>
+  BASE_REF_MODES.some((m) => m === mode);
 
 export const DEFAULT_BASE_REF = 'origin/main';
 
 export interface FileCapsModeConfig {
   mode?: FileCapsMode;
-  /** The ref `grandfather` compares against. */
+  /** The ref the base-ref modes (`ratchet`, `grandfather`) compare against. */
   base: string;
 }
 
@@ -213,8 +220,8 @@ export function parseFileCapsMode(settings: CheckConfig): FileCapsModeConfig {
   if (typeof base !== 'string' || base.trim() === '' || base.startsWith('-')) {
     throw new Error(`file-caps: "base" must be a git ref, got ${JSON.stringify(base)}`);
   }
-  if (mode !== 'grandfather') {
-    throw new Error('file-caps: "base" only applies to mode: grandfather');
+  if (!isBaseRefMode(parsed.mode)) {
+    throw new Error('file-caps: "base" only applies to mode: ratchet or grandfather');
   }
   return { ...parsed, base };
 }
