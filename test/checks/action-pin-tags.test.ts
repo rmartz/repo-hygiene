@@ -29,7 +29,9 @@ const workflow = (...uses: string[]) => ({
   '.github/workflows/ci.yml': uses.map((u) => `      - uses: ${u}`).join('\n') + '\n',
 });
 
-beforeEach(() => boundedRun.mockReset());
+beforeEach(() => {
+  boundedRun.mockReset();
+});
 
 describe('upstreamOf', () => {
   it('returns owner/repo for an action or reusable-workflow ref', () => {
@@ -139,6 +141,22 @@ describe('action-pin-tags check', () => {
     expect(cmd).toBe('git');
     expect(args).toEqual(['ls-remote', '--tags', 'https://github.com/actions/checkout.git']);
     expect(opts).toMatchObject({ env: expect.objectContaining({ GIT_TERMINAL_PROMPT: '0' }) });
+  });
+
+  it('starts every distinct upstream lookup before any result is consumed', async () => {
+    const releases: Array<() => void> = [];
+    boundedRun.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releases.push(() => resolve(ok(`${SHA}\trefs/tags/v1.0.0\n`)));
+        }),
+    );
+    const run = actionPinTagsCheck.run(
+      ctx(filesOf(workflow(`a/one@${SHA} # v1.0.0`, `b/two@${SHA} # v1.0.0`))),
+    );
+    await vi.waitFor(() => expect(boundedRun).toHaveBeenCalledTimes(2));
+    releases.forEach((release) => release());
+    expect(await run).toEqual([]);
   });
 
   it('skips pins with no comment and refs that are not SHA-pinned (action-pins owns those)', async () => {

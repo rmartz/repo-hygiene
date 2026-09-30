@@ -129,11 +129,14 @@ export const actionPinTagsCheck: Check = {
       });
     }
 
-    const tagsByRepo = new Map<string, Promise<Map<string, string> | string>>();
+    // Start every distinct upstream's lookup before awaiting any, so a black-holed
+    // network costs one timeout rather than one per upstream.
+    const tagsByRepo = new Map(
+      [...new Set(pins.map((pin) => pin.repo))].map((repo) => [repo, listTags(repo, ctx.env)]),
+    );
     const warned = new Set<string>();
     const findings: Finding[] = [];
     for (const pin of pins) {
-      if (!tagsByRepo.has(pin.repo)) tagsByRepo.set(pin.repo, listTags(pin.repo, ctx.env));
       const tags = await tagsByRepo.get(pin.repo)!;
       const at = { check: NAME, path: pin.path, line: pin.line };
       if (typeof tags === 'string') {
