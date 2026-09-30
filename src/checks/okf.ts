@@ -4,11 +4,10 @@ import { repoPathExists } from '../discovery.js';
 import { validateOptionalFields } from './okf-fields.js';
 
 /**
- * Open Knowledge Format frontmatter conformance for docs pages — ported from
- * ai-tools' `scripts/check-okf-frontmatter.ts` (itself a port of dotfiles'
- * `test_docs_okf_frontmatter.py`). Every docs page except the reserved files
- * must carry a non-empty `type` plus a `title` and `description`; a non-exempt
- * type must name a `resource` that exists.
+ * Open Knowledge Format frontmatter conformance for docs pages. Every
+ * docs page except the reserved files must carry a non-empty `type` plus a
+ * `title` and `description`; a non-exempt type must name a `resource` that
+ * exists.
  *
  * The OKF spec makes `type` the only always-required key and leaves its
  * vocabulary **open** to the producer, so `types` accepts either a closed list
@@ -17,8 +16,8 @@ import { validateOptionalFields } from './okf-fields.js';
  * likewise accepts `"*"` (no page needs a resource) for a hub that keeps no
  * per-page resources. The vocabulary, scanned roots, exemptions, and
  * resource-exempt types all differ per repo, so they come from `.repo-hygiene.yml`
- * (with defaults matching ai-tools' own code-documentation docs) rather than
- * being baked in as library constants.
+ * (with code-documentation defaults) rather than being baked in as library
+ * constants.
  */
 
 const NAME = 'okf';

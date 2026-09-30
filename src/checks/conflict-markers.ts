@@ -5,7 +5,7 @@ import type { Check, Finding } from '../types.js';
  * Framework adapter over the pure {@link findConflictMarkers} detector — the
  * reference check that proves the registry shape (#164). The detection logic
  * stays in `check-conflict-markers.ts` (and behind the standalone
- * `ai-check-conflict-markers` CLI); this only maps its markers onto the generic
+ * `check-conflict-markers` CLI); this only maps its markers onto the generic
  * {@link Finding} contract and preserves the `--staged` bypass.
  */
 

@@ -39,8 +39,8 @@ tags: [hygiene, ci, checks] # optional
 ---
 ```
 
-This repo runs the **code-documentation flavour** of the `okf` check (the same
-one `ai-tools` uses), so it is stricter than the open OKF spec in two ways:
+This repo runs the **code-documentation flavour** of the `okf` check, so it is stricter than
+the open OKF spec in two ways:
 
 - **`type`** is required and constrained to a curated vocabulary — **`Skill`**,
   **`Script`**, **`Library`**, **`Design`**, plus **`Reference`** for concept /
@@ -88,5 +88,5 @@ Conformance is gated by this repo's **Self-hygiene** CI job, which runs the
 same checks locally:
 
 ```bash
-ai-repo-hygiene okf okf-index --check --config .repo-hygiene.yml
+repo-hygiene okf okf-index --check --config .repo-hygiene.yml
 ```

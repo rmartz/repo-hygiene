@@ -148,7 +148,7 @@ exemption and hard-errors.
 Regenerate the baseline with the CLI rather than editing the JSON by hand:
 
 ```bash
-ai-repo-hygiene --update-baseline --check --config .repo-hygiene.yml
+repo-hygiene --update-baseline --check --config .repo-hygiene.yml
 ```
 
 With no baseline file present this is first-time **adoption** (baseline

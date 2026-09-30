@@ -1,8 +1,7 @@
 import type { Check, Finding } from '../types.js';
 
 /**
- * package.json full-pin conformance — ported from ai-tools' root
- * `scripts/check-pins.ts` (built for #63). Every registry dependency must be
+ * package.json full-pin conformance. Every registry dependency must be
  * pinned to a full `[major].[minor].[patch]` base, keeping the `^`/`~` range
  * operator (`^3.8.3`, `~1.2.0`). An abbreviated pin like `^3` or `^3.8` lets
  * Dependabot upgrade the dependency through a `pnpm-lock.yaml`-only change with

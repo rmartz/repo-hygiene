@@ -33,7 +33,7 @@ no opportunity to adjust configuration before the new check runs.
 ## How results surface in a consumer repo
 
 The Action runs as a step in the consumer's own job and runs every selected check
-in one `ai-repo-hygiene … --check` invocation. That job is **one pass/fail
+in one `repo-hygiene … --check` invocation. That job is **one pass/fail
 check-run** in the PR checks list, red if any check emits an `error` finding, so it
 is safe to require as a single gate. When the calling job grants
 `statuses: write`, the Action also posts one commit status per check

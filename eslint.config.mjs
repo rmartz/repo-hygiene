@@ -4,9 +4,7 @@ import tsparser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 
 /**
- * Flat ESLint config for the standalone repo-hygiene package. This is the
- * single-package descendant of the ai-tools monorepo config: the layer-boundary
- * model is gone (there are no cross-package layers here), but the code-style
+ * Flat ESLint config for the standalone repo-hygiene package. The code-style
  * rules — promoted from CLAUDE.md prose to static enforcement — are kept intact
  * so they hold at every model tier instead of relying on a reviewer's eye.
  */
