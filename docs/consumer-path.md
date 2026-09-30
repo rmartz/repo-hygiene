@@ -10,15 +10,16 @@ tags: [hygiene, ci, releases, dependabot]
 A newly-added check does **not** require any per-repo change to start running:
 
 1. **Merge → release.** A merged `feat`/`fix` on `main` triggers semantic-release,
-   which publishes a new `@rmartz/repo-hygiene` CLI version to npmjs and tags it. The reusable workflow that installs that CLI (and keeps its installed
-   version current) is moving to the separate `rmartz/repo-hygiene-action` repo
-   ([#45](https://github.com/rmartz/repo-hygiene/issues/45)); the steps below
-   describe the pin/bump loop, which is unchanged apart from the repo it points at.
-2. **Dependabot bump.** Each consumer pins the reusable workflow by SHA
-   (`uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z`) and
-   runs Dependabot's `github-actions` ecosystem. Dependabot opens a PR bumping that
-   pin to the new release on its normal schedule.
-3. **Pick-up.** Merging the Dependabot PR moves the consumer onto the new package
+   which publishes a new `@rmartz/repo-hygiene` CLI version to npmjs and tags it.
+2. **Action re-release.** [`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action)
+   pins the CLI as an npm dependency. Its Dependabot opens a bump PR, bot-automerge
+   merges patch/minor bumps, and the Action's own semantic-release cuts a new Action
+   version. A **major** CLI bump stops there for a human.
+3. **Consumer Dependabot bump.** Each consumer pins the Action by SHA
+   (`uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z`) and runs Dependabot's
+   `github-actions` ecosystem, which opens a PR bumping that pin to the new Action
+   release on its normal schedule.
+4. **Pick-up.** Merging the Dependabot PR moves the consumer onto the new package
    version. A new **default-on** check now runs automatically — the consumer's
    empty `checks` input resolves to the registry's default-on set, so the check
    auto-joins with no edit to their caller. An **opt-in** check ships in the
@@ -26,30 +27,29 @@ A newly-added check does **not** require any per-repo change to start running:
    and a `.repo-hygiene.yml` section.
 
 This is why default-safety is non-negotiable (see
-[the distribution contract](distribution-contract.md)): step 3 gives the consumer
+[the distribution contract](distribution-contract.md)): step 4 gives the consumer
 no opportunity to adjust configuration before the new check runs.
 
 ## How results surface in a consumer repo
 
-The reusable workflow (`.github/workflows/hygiene.yml`) is a **single job**
-(`Repo hygiene`) that runs every selected check in one `ai-repo-hygiene … --check`
-invocation. So a consumer sees **one bundled pass/fail check-run** in the PR checks
-list — not one result per check — and it goes red if any check emits an `error`
-finding. Individual findings still surface: under GitHub Actions the CLI emits
-`--format github` annotations (`::error` / `::warning file=…,line=…`), so each one
-renders **inline on the PR diff** at its file and line. The aggregate status keeps
-the checks list clean and makes the job safe to require as a single gate; the price
-is that the checks list alone does not say _which_ check failed — you read the
-annotations or the job log. Per-check statuses would require the workflow to fan
-out (a matrix or per-check jobs), which it deliberately does not.
+The Action runs as a step in the consumer's own job and runs every selected check
+in one `ai-repo-hygiene … --check` invocation. That job is **one pass/fail
+check-run** in the PR checks list, red if any check emits an `error` finding, so it
+is safe to require as a single gate. When the calling job grants
+`statuses: write`, the Action also posts one commit status per check
+(`repo-hygiene / <check>`), so the status list shows _which_ check failed; without
+it the Action warns and still reports the overall result. Individual findings
+surface too: under GitHub Actions the CLI emits `--format github` annotations
+(`::error` / `::warning file=…,line=…`), so each one renders **inline on the PR
+diff** at its file and line.
 
 ## The suite is not path-filtered
 
-The reusable workflow carries no `on.paths`, no `detect-changes` job, and no
-per-check `if:` — and a `workflow_call` cannot filter by path anyway. Two layers:
+The Action carries no path filtering and no per-check `if:` — an Action step has
+no triggers of its own. Two layers:
 
 - **Whether the job runs** is decided by the consumer's caller `on:` triggers, not
-  by this workflow. Out of the box the caller runs on every PR, so the hygiene job
+  by the Action. Out of the box the caller runs on every PR, so the hygiene job
   runs on every PR regardless of which files changed.
 - **What it scans** is `--check` mode — the full tracked set, every run. So the OKF
   checks execute on every run even when no `.md` changed; they simply self-scope by

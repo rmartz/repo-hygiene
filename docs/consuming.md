@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Setting up repo-hygiene in a consuming repo
-description: How to add the reusable hygiene workflow to a repo, choose and configure checks in .repo-hygiene.yml, and verify the setup is working.
+description: How to add the repo-hygiene GitHub Action to a repo, choose and configure checks in .repo-hygiene.yml, and verify the setup is working.
 tags: [consumer, setup, configuration]
 ---
 
@@ -15,8 +15,9 @@ the check registry and how a new check is authored, see the
 ## Local vs CI: what you actually need
 
 **CI-only is the baseline.** Adopting repo-hygiene requires only the caller
-workflow and Dependabot entry in section 1 — the checks run in the reusable
-workflow on GitHub. You do **not** need a local `@rmartz/repo-hygiene`
+workflow and Dependabot entry in section 1 — the checks run in the
+[`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action)
+GitHub Action. You do **not** need a local `@rmartz/repo-hygiene`
 devDependency, `.npmrc` `@rmartz` auth, `package.json` hygiene scripts, or a
 pre-commit/husky hook.
 
@@ -35,7 +36,8 @@ seeded automatically by
 [`@rmartz/bootstrap`](https://github.com/rmartz/ai-tools) (`ai-ensure-project-config`),
 so you rarely write them by hand — but here is what they are.
 
-The caller workflow pins the reusable workflow by commit SHA:
+The caller workflow checks out the repository (the Action scans the workspace and
+checks out nothing itself) and runs the Action, pinned by commit SHA:
 
 ```yaml
 # .github/workflows/repo-hygiene.yml
@@ -46,13 +48,21 @@ on:
   pull_request:
   push:
     branches: [main]
+permissions:
+  contents: read
+  statuses: write # optional: one `repo-hygiene / <check>` commit status per check
 jobs:
   hygiene:
-    permissions:
-      contents: read
-      packages: read
-    uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@<sha> # vX.Y.Z
+      - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
 ```
+
+The Action's full input list (`checks`, `config`, `node-version`,
+`working-directory`, per-check statuses) is in its
+[README](https://github.com/rmartz/repo-hygiene-action#inputs).
 
 The Dependabot entry keeps that `@<sha>` pin current — this is the channel new
 checks and fixes reach you through:
@@ -67,9 +77,8 @@ updates:
       interval: weekly
 ```
 
-**Auth:** the published `@rmartz/repo-hygiene` package is **public** on GitHub
-Packages, readable with the built-in `GITHUB_TOKEN` — so the `packages: read`
-permission above is all the workflow needs. No per-repo PAT.
+**Auth:** the published `@rmartz/repo-hygiene` package is **public** on npmjs, so
+the install needs no token and no `packages: read` permission. No per-repo PAT.
 
 **Pin to a commit with a plain `vX.Y.Z` tag.** Releases up to 3.0.0 were tagged
 `repo-hygiene-vX.Y.Z`, and those prefixed tags are not aliased to plain ones. A
@@ -80,10 +89,10 @@ like this.
 
 ## 2. Choose which checks run
 
-The `checks` workflow input decides which checks run. Its behavior changed in
-1.0.0 to derive the default from the package's registry:
+The Action's `checks` input decides which checks run, with the default derived
+from the package's registry:
 
-- **Omit `checks` entirely** → the reusable workflow runs the **default-on** set —
+- **Omit `checks` entirely** → the Action runs the **default-on** set —
   currently every check **except** the opt-in `package-pins` and
   `action-pin-tags` (`conflict-markers`,
   `action-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) —
@@ -97,11 +106,11 @@ The `checks` workflow input decides which checks run. Its behavior changed in
   you want.
 
 ```yaml
-uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z
-with:
-  # pin an explicit set: the default-on checks you want + the opt-in package-pins
-  checks: conflict-markers action-pins docs-links md-pairing okf okf-index file-caps package-pins
-  config: .repo-hygiene.yml
+- uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
+  with:
+    # pin an explicit set: the default-on checks you want + the opt-in package-pins
+    checks: conflict-markers action-pins docs-links md-pairing okf okf-index file-caps package-pins
+    config: .repo-hygiene.yml
 ```
 
 `config:` points at your per-repo `.repo-hygiene.yml` (section 3). Which checks
@@ -215,6 +224,10 @@ after files shrink.
 
 ## Troubleshooting
 
+- **You still call `rmartz/repo-hygiene/.github/workflows/hygiene.yml`.** That
+  reusable workflow was removed in favor of the Action. Existing SHA pins still
+  resolve but run a frozen CLI 3.0.0 and receive no updates — switch the caller to
+  the section 1 shape.
 - **The job is green but a check you configured never fires.** An opt-in check
   runs only when it is named in the `checks` input. If you set `checks:` at all,
   it is the _exact_ run list — confirm the check is in it, not just in
@@ -223,9 +236,7 @@ after files shrink.
 - **The job fails the moment you enable an opinionated check.** That is the check
   finding a real backlog. Use `severity: warn` (section 3) to ramp it in rather
   than blocking every PR at once.
-- **`install` fails to find the package.** The package is public on GitHub
-  Packages; the reusable workflow reads it with `GITHUB_TOKEN` and the
-  `packages: read` permission. If you install it outside the workflow, install from
-  npmjs with no auth. If an `.npmrc` maps the `@rmartz` scope to
+- **`install` fails to find the package.** The package is public on npmjs and
+  installs with no auth. If an `.npmrc` maps the `@rmartz` scope to
   `npm.pkg.github.com`, npm looks only there and finds nothing newer than 7.0.1 —
   remove that mapping.

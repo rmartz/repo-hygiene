@@ -4,16 +4,17 @@ A suite of low-cost CI checks (conflict markers, GitHub Actions SHA pins,
 Markdown link integrity, docs frontmatter, file-size caps, and more), packaged so
 that:
 
-1. **Updates propagate automatically.** Consuming repos pin one reusable workflow
+1. **Updates propagate automatically.** Consuming repos pin one GitHub Action,
+   [`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action),
    by version; Dependabot's `github-actions` ecosystem opens PRs to bump that pin
    on its normal schedule.
-2. **Adding a check is low-friction for consumers.** New checks ship inside the
-   central reusable workflow and package — consumers pick them up on the next
-   Dependabot bump with no per-repo YAML edits.
+2. **Adding a check is low-friction for consumers.** New checks ship inside this
+   CLI; the Action picks up each release automatically, and consumers pick it up
+   on the next Dependabot bump with no per-repo YAML edits.
 
 ## Using it in a consuming repo
 
-Add one caller workflow (this is what Dependabot keeps current):
+Check out the repository, then run the Action as a step:
 
 ```yaml
 # .github/workflows/repo-hygiene.yml
@@ -22,12 +23,16 @@ on:
   pull_request:
   push:
     branches: [main]
+permissions:
+  contents: read
+  statuses: write # optional: one commit status per check
 jobs:
   hygiene:
-    permissions:
-      contents: read
-      packages: read
-    uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@<sha> # vX.Y.Z
+      - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
 ```
 
 and a Dependabot entry so the pin stays current:
@@ -43,27 +48,29 @@ updates:
 ```
 
 Both files are seeded once by [`@rmartz/bootstrap`](https://github.com/rmartz/ai-tools)
-(`ai-ensure-project-config`); after that Dependabot maintains the pin. The public
-`@rmartz/repo-hygiene` package on GitHub Packages is readable with the built-in
-`GITHUB_TOKEN`, so no consumer PAT is required.
+(`ai-ensure-project-config`); after that Dependabot maintains the pin. The
+`@rmartz/repo-hygiene` package is public on npmjs, so the install needs no token,
+`packages: read` permission, or consumer PAT.
 
 > For the full walkthrough — per-check configuration, the `file-caps` baseline,
 > and how to verify your setup — see the
-> [consumer setup & configuration guide](docs/consuming.md).
+> [consumer setup & configuration guide](docs/consuming.md). The Action's inputs
+> are documented in its
+> [README](https://github.com/rmartz/repo-hygiene-action#inputs).
 
 ### Choosing checks
 
-**Omit the `checks` input** and the workflow runs the registry's default-on set
-(`conflict-markers`, `action-pins`) — and a newly-added default-on check
-auto-joins on your next Dependabot bump with no edit here. To opt into
-repo-specific checks, name them explicitly (this becomes the _exact_ run list, so
-include the defaults you still want) and point at a config:
+**Omit the `checks` input** and the Action runs the registry's default-on set —
+and a newly-added default-on check auto-joins on your next Dependabot bump with no
+edit here. To opt into repo-specific checks, name them explicitly (this becomes
+the _exact_ run list, so include the defaults you still want) and point at a
+config:
 
 ```yaml
-uses: rmartz/repo-hygiene/.github/workflows/hygiene.yml@<sha> # vX.Y.Z
-with:
-  checks: conflict-markers action-pins docs-links okf
-  config: .repo-hygiene.yml
+- uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
+  with:
+    checks: conflict-markers action-pins docs-links okf
+    config: .repo-hygiene.yml
 ```
 
 Per-check configuration lives in the consuming repo's `.repo-hygiene.yml` — see
@@ -80,7 +87,7 @@ the [consumer guide](docs/consuming.md) for the full reference.
 - Node.js >= 20.11
 - pnpm 9 (pinned via `packageManager`)
 
-Consuming repos need neither — the reusable workflow runs the published CLI on a
+Consuming repos need neither — the Action runs the published CLI on a
 GitHub-hosted runner.
 
 ## Local development
@@ -114,10 +121,12 @@ new versions go to npmjs only. Releases run through the fleet's shared
 [semantic-release-ci](https://github.com/rmartz/semantic-release-ci) workflows,
 whose required `release-check / release-check` check renders the release notes
 with the shared toolchain on every PR, so a broken release setup is caught before
-merge rather than on the post-merge release run. The reusable workflow that
-installs this CLI is moving to the separate
-[`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action) repo
-(see [#45](https://github.com/rmartz/repo-hygiene/issues/45)).
+merge rather than on the post-merge release run. Consumers get each release
+through [`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action),
+which pins this CLI and re-releases itself when Dependabot bumps it (see
+[#45](https://github.com/rmartz/repo-hygiene/issues/45)). The reusable workflow
+this repo used to ship (`.github/workflows/hygiene.yml`) has been removed; existing
+SHA pins to it still resolve but run a frozen CLI 3.0.0.
 
 ---
 

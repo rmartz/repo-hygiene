@@ -9,8 +9,8 @@ name: Release
 # Release with generated notes, and tags v<version>. It does NOT commit anything
 # back to main — no version-sync, no PAT — so the default GITHUB_TOKEN suffices
 # even on protected main (tags/releases aren't branch pushes). See
-# .releaserc.json. The reusable workflow that installs this CLI lives in the
-# separate rmartz/repo-hygiene-action repo (see #45).
+# .releaserc.json. The GitHub Action that installs this CLI for consumers lives
+# in the separate rmartz/repo-hygiene-action repo (see #45).
 #
 # npm auth is OIDC trusted publishing: npmjs trusts THIS workflow file
 # (`release.yml`) in rmartz/repo-hygiene, so there is no NPM_TOKEN secret.

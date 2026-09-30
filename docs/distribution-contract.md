@@ -7,8 +7,9 @@ tags: [hygiene, ci, distribution]
 
 # The distribution contract
 
-Consumers run these checks through the reusable workflow
-(`.github/workflows/hygiene.yml`), pinned by version and bumped by Dependabot (see
+Consumers run these checks through the
+[`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action)
+GitHub Action, pinned by version and bumped by Dependabot (see
 [how a check reaches consumers](consumer-path.md)). For a **new check to reach
 consumers with no per-repo work**, it must be safe to run with no configuration —
 either it does something universally correct with sane defaults, or it no-ops until
@@ -18,7 +19,7 @@ failing would break every consumer's CI the moment it ships, so that is disallow
 ## The `defaultOn` flag
 
 Each check declares whether it is **default-on** through the `defaultOn` flag on
-its registry entry (`src/types.ts`). The reusable workflow's `checks` input
+its registry entry (`src/types.ts`). The Action's `checks` input
 defaults to **empty**, and an empty input runs the registry-derived default-on
 set — so the default is _computed_ from the flags, never hardcoded in the YAML, and
 a newly-added default-on check auto-joins every consumer on the next Dependabot
