@@ -30,8 +30,8 @@ ai-repo-hygiene --update-baseline [--check] [--config <path>]
 - **`--format`** is `text` (default; report on stderr) or `github` (workflow-command
   annotations on stdout); omitted, it auto-detects GitHub Actions
   (`GITHUB_ACTIONS=true`).
-- **`--update-baseline`** regenerates the [`file-caps`](checks/file-caps.md)
-  ratchet baseline instead of running checks.
+- **`--update-baseline`** regenerates the committed [`file-caps`](checks/file-caps.md)
+  baseline (legacy `mode: baseline`) instead of running checks.
 
 **Exit codes:** `0` when clean or warn-only, `1` on any `error` finding, `2` on a
 usage error or unknown check. A `warn`-only run exits `0` — the migration-ramp
