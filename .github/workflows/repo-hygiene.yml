@@ -1,11 +1,9 @@
 name: Repo Hygiene
 
 # Dogfood: repo-hygiene is its own first consumer, using the exact caller shape
-# every consuming repo uses — now the rmartz/repo-hygiene-action composite
-# Action, which is what we actually ship. Our reusable workflow's `version:`
-# input is frozen at CLI 3.0.0 pending this migration (rmartz/repo-hygiene#45),
-# so a caller pinned to it validates a distribution path we no longer publish
-# updates through; this caller validates the one we do.
+# every consuming repo uses — the rmartz/repo-hygiene-action composite Action,
+# which is how the CLI is distributed (it replaced this repo's old reusable
+# workflow, rmartz/repo-hygiene#45).
 #
 # This stays distinct from the CI "Self-hygiene" job, which runs the *full* check
 # set from the freshly-built local CLI for regression coverage. This one
@@ -29,8 +27,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
-  packages: read # read the public @rmartz/repo-hygiene package from GitHub Packages
+  contents: read # the Action installs @rmartz/repo-hygiene from public npmjs, no token needed
 
 jobs:
   hygiene:
