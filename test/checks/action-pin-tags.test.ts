@@ -7,7 +7,7 @@ vi.mock('../../src/lib/bounded-subprocess.js', () => ({ boundedRun }));
 const ok = (stdout: string) => ({ stdout, stderr: '', code: 0, timedOut: false });
 const fail = (stderr = '') => ({ stdout: '', stderr, code: 128, timedOut: false });
 
-const { upstreamOf, parseLsRemoteTags, resolveTag, actionPinTagsCheck } =
+const { upstreamOf, parseLsRemoteTags, resolveTag, isUnreadableUpstream, actionPinTagsCheck } =
   await import('../../src/checks/action-pin-tags.js');
 const { builtinChecks, createRegistry } = await import('../../src/registry.js');
 
@@ -167,7 +167,7 @@ describe('action-pin-tags check', () => {
     expect(boundedRun).not.toHaveBeenCalled();
   });
 
-  it('warns and skips, never fails, when an upstream cannot be listed', async () => {
+  it('warns and skips, never fails, when an upstream is definitively unreadable', async () => {
     boundedRun.mockResolvedValueOnce(fail('fatal: could not read Username'));
     const findings = await actionPinTagsCheck.run(
       ctx(filesOf(workflow(`private/action@${SHA} # v1.0.0`))),
@@ -183,13 +183,26 @@ describe('action-pin-tags check', () => {
     ]);
   });
 
-  it('warns and skips when the lookup times out or git is missing', async () => {
+  it('is inconclusive, not a pass, when the lookup times out or git cannot run', async () => {
     boundedRun.mockResolvedValueOnce({ stdout: '', stderr: '', code: null, timedOut: true });
     boundedRun.mockRejectedValueOnce(new Error('spawn git ENOENT'));
     const findings = await actionPinTagsCheck.run(
       ctx(filesOf(workflow(`a/one@${SHA} # v1.0.0`, `b/two@${SHA} # v1.0.0`))),
     );
-    expect(findings.map((f) => f.severity)).toEqual(['warn', 'warn']);
+    expect(findings.map((f) => f.severity)).toEqual(['inconclusive', 'inconclusive']);
+  });
+
+  it('is inconclusive on a rate limit or network error, but still reports real mismatches', async () => {
+    boundedRun.mockResolvedValueOnce(
+      fail(
+        "fatal: unable to access 'https://github.com/a/one.git/': The requested URL returned error: 429",
+      ),
+    );
+    boundedRun.mockResolvedValueOnce(ok(`${OTHER}\trefs/tags/v1.0.0\n`));
+    const findings = await actionPinTagsCheck.run(
+      ctx(filesOf(workflow(`a/one@${SHA} # v1.0.0`, `b/two@${SHA} # v1.0.0`))),
+    );
+    expect(findings.map((f) => f.severity)).toEqual(['inconclusive', 'error']);
   });
 
   it('authenticates via an env-injected header when a token is present, never in argv', async () => {
@@ -207,5 +220,25 @@ describe('action-pin-tags check', () => {
         GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
       }),
     });
+  });
+});
+
+describe('isUnreadableUpstream', () => {
+  it('recognizes a definitive not-found or auth refusal', () => {
+    expect(isUnreadableUpstream('remote: Repository not found.')).toBe(true);
+    expect(isUnreadableUpstream('fatal: Authentication failed for ...')).toBe(true);
+    expect(isUnreadableUpstream('The requested URL returned error: 404')).toBe(true);
+  });
+
+  it('treats rate limits, 403s, server errors, and network failures as transient', () => {
+    for (const stderr of [
+      'The requested URL returned error: 429',
+      'The requested URL returned error: 403',
+      'The requested URL returned error: 503',
+      'Could not resolve host: github.com',
+      'Failed to connect to github.com port 443',
+    ]) {
+      expect(isUnreadableUpstream(stderr)).toBe(false);
+    }
   });
 });

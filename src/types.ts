@@ -16,6 +16,15 @@ import type { FileSet, Mode } from './discovery.js';
 export type Severity = 'warn' | 'error';
 
 /**
+ * A finding's outcome: a {@link Severity}, or `inconclusive` when the check could
+ * not reach a verdict because of an external transient error (a rate limit, a
+ * timeout, an unreachable network). An inconclusive finding says nothing about
+ * the change under test, so the config `severity` override never applies to it,
+ * and a run whose only blocking outcome is inconclusive exits `3`, not `1`.
+ */
+export type FindingSeverity = Severity | 'inconclusive';
+
+/**
  * One reported problem. `path`/`line` are omitted for repo-level findings (a
  * check about the tree as a whole rather than one line of one file).
  */
@@ -28,7 +37,7 @@ export interface Finding {
   line?: number;
   /** Human-readable description. */
   message: string;
-  severity: Severity;
+  severity: FindingSeverity;
 }
 
 /**
