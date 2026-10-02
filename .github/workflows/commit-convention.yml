@@ -1,15 +1,16 @@
 name: Conventional Commits (main)
 
-# Post-merge tripwire — the counterpart of pr-title-lint.yml, which validates PR
-# titles *pre-merge* but cannot see whether the conventional title actually
-# reached `main`. This fails loudly when a subject lands on the default branch
+# Post-merge tripwire — the counterpart of pr-policy's `title` check (part of the
+# `pr-policy` check, pr-policy.yml), which validates PR titles *pre-merge* but
+# cannot see whether the conventional title actually reached `main`. This fails loudly when a subject lands on the default branch
 # without a valid conventional-commit prefix: a squash-merge setting that used the
 # branch commit message instead of the PR title, a direct push, or a squash that
 # dropped the prefix — any of which makes semantic-release skip the release.
 # It alerts; it cannot gate (the commit is already merged).
 #
 # Self-managed by this repo (not bootstrap-managed). It mirrors the fleet golden
-# tripwire; if the shell grammar below drifts from pr-title-lint.yml, update both.
+# tripwire; the shell grammar below mirrors pr-policy's `title` check; keep the
+# two in step.
 
 on:
   push:
@@ -33,7 +34,7 @@ jobs:
           AFTER: ${{ github.event.after }}
         run: |
           set -euo pipefail
-          # Conventional-commit subject grammar — mirrors pr-title-lint.yml. The
+          # Conventional-commit subject grammar — mirrors pr-policy's `title` check. The
           # '!' breaking-change marker is allowed only on a functional type
           # (feat, fix, perf, revert); a non-functional type (docs, chore,
           # refactor, test, style, ci, build) may not carry it.
