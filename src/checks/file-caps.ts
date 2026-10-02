@@ -42,9 +42,15 @@ export interface FileMetrics {
   bytes: number;
 }
 
-/** Line count (trailing newline not counted as an extra line) + UTF-8 byte size. */
+/**
+ * Line count (trailing newline not counted as an extra line) + UTF-8 byte size.
+ * A binary file (one containing a NUL byte) counts as 0 lines: its newline
+ * bytes are noise, so only byte caps apply to it.
+ */
 export function computeMetrics(path: string, text: string): FileMetrics {
-  const lines = text === '' ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
+  const binary = text.includes('\0');
+  const lines =
+    text === '' || binary ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
   return { path, lines, bytes: Buffer.byteLength(text, 'utf8') };
 }
 
@@ -200,9 +206,9 @@ async function measureAll(mode: Mode, cwd: string): Promise<FileMetrics[]> {
 export const fileCapsCheck: Check = {
   name: NAME,
   description: 'Per-glob line/byte size caps with a base-ref ratchet or grandfather ramp.',
-  // Default-on: ships two-tier shared defaults (see file-caps-config) that
-  // hard-gate on size. Unlike the other default-on checks it can error on arrival;
-  // a consumer sets mode: ratchet or grandfather, overrides the cap, or opts out.
+  // Default-on: ships error-only shared defaults (see file-caps-config) that
+  // hard-gate on size; a consumer sets mode: ratchet or grandfather, overrides
+  // the cap, or opts out.
   defaultOn: true,
   async run(ctx) {
     const entries = resolveFileCapsOverrides(ctx.settings);
