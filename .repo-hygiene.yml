@@ -2,41 +2,17 @@
 # Each section under `checks` is read by the check of that name; `severity` (when
 # set) overrides that check's findings. See docs/overview.md.
 #
-# The CI Self-hygiene job dogfoods every check that applies to this repo against
-# our own tree: conflict-markers, action-pins, package-pins, docs-links
-# (config-free here), plus okf / okf-index / md-pairing / file-caps configured
-# below. docs/ is an OKF bundle — see docs/okf-format.md.
+# The CI Self-hygiene job dogfoods every default-on check against our own tree,
+# on the package defaults wherever they fit: conflict-markers, action-pins,
+# package-pins, docs-links (anchors included), md-pairing (bare-wrapper rule
+# included), okf-index, and file-caps all run unconfigured. Only okf is
+# configured below. docs/ is an OKF bundle — see docs/okf-format.md.
 checks:
-  # Intra-repo Markdown link integrity for docs pages.
-  docs-links:
-    roots: [docs]
-    exempt: []
-    # Dogfood anchor validation on our own docs bundle.
-    anchors: true
-    anchorExempt: []
   # OKF docs-frontmatter conformance. This repo documents code, so it uses the
   # curated type vocabulary; `Reference` (concept/guide pages like okf-format.md)
   # joins the defaults and is resource-exempt alongside `Design`.
   okf:
-    # okf / okf-index / md-pairing ship warn-by-default fleet-wide (see
-    # docs/distribution-contract.md); this repo enforces them strictly at error.
-    severity: error
     types: [Skill, Script, Library, Design, Reference]
     resourceExemptTypes: [Design, Reference]
     # OKF-reserved index.md / log.md are skipped automatically, so no exempt
     # entries are needed for this repo's docs bundle.
-  okf-index:
-    severity: error
-  md-pairing:
-    severity: error
-  # Per-glob size caps, dogfooded against our own source and docs. Caps sit
-  # comfortably above current sizes so the check exercises its full evaluate path
-  # without flagging; tighten them if a file starts to sprawl.
-  file-caps:
-    overrides:
-      - glob: 'src/**/*.ts'
-        lines: { warn: 350, error: 500 }
-        bytes: { warn: 16KB, error: 24KB }
-      - glob: 'docs/**/*.md'
-        lines: { warn: 500, error: 700 }
-        bytes: { warn: 32KB, error: 48KB }

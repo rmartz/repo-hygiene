@@ -69,6 +69,9 @@ const isManifest = (path: string): boolean =>
 export const packagePinsCheck: Check = {
   name: NAME,
   description: 'package.json dependencies pinned to a full [major].[minor].[patch] base.',
+  // Default-on: a repo with no package.json yields no findings, and one that
+  // deliberately uses abbreviated ranges opts out with `enabled: false`.
+  defaultOn: true,
   async run(ctx) {
     const findings: Finding[] = [];
     for (const path of ctx.files.paths) {

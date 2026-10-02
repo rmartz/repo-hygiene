@@ -93,23 +93,22 @@ The Action's `checks` input decides which checks run, with the default derived
 from the package's registry:
 
 - **Omit `checks` entirely** → the Action runs the **default-on** set —
-  currently every check **except** the opt-in `package-pins` and
-  `action-pin-tags` (`conflict-markers`,
-  `action-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) —
-  and a newly-added default-on check **auto-joins** on your next Dependabot bump
-  with no edit to your caller. This is the recommended default. Three of them
-  (`md-pairing`, `okf`, `okf-index`) default to `warn` severity, so they report
-  without failing CI until you opt into `severity: error` (section 3).
+  currently every check **except** the network-dependent, opt-in
+  `action-pin-tags` (`conflict-markers`, `action-pins`, `package-pins`,
+  `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) — and a
+  newly-added default-on check **auto-joins** on your next Dependabot bump with
+  no edit to your caller. This is the recommended default. Every one of them
+  enforces at `error`; relax one in `.repo-hygiene.yml` (section 3) rather than
+  dropping it from the list.
 - **Set `checks: <names>`** → runs **exactly** those checks. This pins the set:
   you manage the list, and you forfeit auto-join for future default-on checks. To
-  add an opt-in check like `package-pins` (or drop a default-on check), name the full set
-  you want.
+  drop one default-on check, prefer `enabled: false` in its config section.
 
 ```yaml
 - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
   with:
-    # pin an explicit set: the default-on checks you want + the opt-in package-pins
-    checks: conflict-markers action-pins docs-links md-pairing okf okf-index file-caps package-pins
+    # pin an explicit set: the default-on checks + the opt-in action-pin-tags
+    checks: conflict-markers action-pins package-pins docs-links md-pairing okf okf-index file-caps action-pin-tags
     config: .repo-hygiene.yml
 ```
 
@@ -123,18 +122,18 @@ Per-repo settings live under `checks.<name>`. The framework understands one key
 everywhere — `severity` (see the ramp below) — and every other key is defined by
 the owning check:
 
-| Check              | Default   | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                       |
-| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `conflict-markers` | on        | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                           |
-| `action-pins`      | on        | none                                                                                                                                                                                                                                 |
-| `action-pin-tags`  | opt-in    | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                              |
-| `package-pins`     | opt-in    | none                                                                                                                                                                                                                                 |
-| `docs-links`       | on        | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (also validate `#fragment` targets, bool); `anchorExempt`                                                                             |
-| `md-pairing`       | on (warn) | `wrapper` (require each `CLAUDE.md` be a bare import line; `true` → `@AGENTS.md`, or a custom string)                                                                                                                                |
-| `okf`              | on (warn) | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` to exempt all types — disables resource validation). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
-| `okf-index`        | on (warn) | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                                                            |
-| `file-caps`        | on        | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes)                                                                                                                                |
-| _(any check)_      |           | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                                                            |
+| Check              | Default | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                             |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `conflict-markers` | on      | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                                 |
+| `action-pins`      | on      | none                                                                                                                                                                                                                                       |
+| `action-pin-tags`  | opt-in  | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                                    |
+| `package-pins`     | on      | none                                                                                                                                                                                                                                       |
+| `docs-links`       | on      | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (validate `#fragment` targets, bool, default `true`); `anchorExempt`                                                                        |
+| `md-pairing`       | on      | `wrapper` (each `CLAUDE.md` must be a bare import line; default `@AGENTS.md`, a custom string, or `false` to skip the rule)                                                                                                                |
+| `okf`              | on      | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` — no type needs a resource; a set one is still validated). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
+| `okf-index`        | on      | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                                                                  |
+| `file-caps`        | on      | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes); `mode`; `base`                                                                                                                      |
+| _(any check)_      |         | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                                                                  |
 
 That table is the **complete check roster** — the names you can pass in `checks:`.
 The `src/checks/` directory also contains `md-links` and `okf-fields`, but these
@@ -148,15 +147,15 @@ every docs page is reachable from a root `index.md`. Enable `okf-index` (with yo
 `roots`/`indexName`), retire the local script, and — if your bundle links a flat
 root index rather than nested per-directory indexes — set `nestedIndexes: false`.
 
-A representative config:
+Every check is strict with no config, so most keys exist to **relax** a default
+for a repo that intentionally needs laxer rules. A representative config:
 
 ```yaml
 # .repo-hygiene.yml
 checks:
   docs-links:
-    roots: [docs]
-    exempt: []
-    anchors: true # also validate that #fragment link targets resolve
+    roots: [docs, guides]
+    anchorExempt: ['README.md#quick-start'] # a GitHub slug-parity edge case
   okf:
     types: [Skill, Script, Library, Design, Reference] # or "*" for an open vocabulary
     resourceExemptTypes: [Design, Reference]
@@ -231,11 +230,14 @@ after files shrink.
 - **The job is green but a check you configured never fires.** An opt-in check
   runs only when it is named in the `checks` input. If you set `checks:` at all,
   it is the _exact_ run list — confirm the check is in it, not just in
-  `.repo-hygiene.yml`. A check also no-ops when its config is absent (e.g.
-  `file-caps` with no `overrides`).
-- **The job fails the moment you enable an opinionated check.** That is the check
-  finding a real backlog. Use `severity: warn` (section 3) to ramp it in rather
-  than blocking every PR at once.
+  `.repo-hygiene.yml`.
+- **The job fails after a major-version bump.** Defaults only get stricter in a
+  major release, so the check is finding a real backlog. Relax it in
+  `.repo-hygiene.yml` the same day and fix the backlog on your own schedule:
+  `severity: warn` (section 3), a laxer option (`anchors: false`,
+  `wrapper: false`, a custom `okf` `types`, a `file-caps` override),
+  `mode: ratchet` for `file-caps`, or `enabled: false`. The
+  [distribution contract](distribution-contract.md#escape-hatches) lists them.
 - **`install` fails to find the package.** The package is public on npmjs and
   installs with no auth. If an `.npmrc` maps the `@rmartz` scope to
   `npm.pkg.github.com`, npm looks only there and finds nothing newer than 7.0.1 —

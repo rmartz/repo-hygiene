@@ -134,6 +134,36 @@ describe('validateDoc', () => {
   });
 });
 
+describe('validateDoc — resources on exempt types', () => {
+  const existsNone = (): boolean => false;
+  const exempt = { type: 'Design', title: 'x', description: 'y' };
+
+  it('passes an exempt-type page that sets no resource', () => {
+    expect(validateDoc('docs/a.md', page(exempt), DEFAULTS, existsNone)).toEqual([]);
+  });
+
+  it('still reports a resource that an exempt-type page sets but that does not exist', () => {
+    const findings = validateDoc(
+      'docs/a.md',
+      page({ ...exempt, resource: '../outside.yml' }),
+      DEFAULTS,
+      existsNone,
+    );
+    expect(findings.map((f) => f.message)).toEqual(['resource not found: ../outside.yml']);
+  });
+
+  it('validates a set resource under resourceExemptTypes: "*" too', () => {
+    const cfg = { ...DEFAULTS, resourceExemptTypes: '*' as const };
+    const findings = validateDoc(
+      'docs/a.md',
+      page({ type: 'Library', title: 'x', description: 'y', resource: 'gone.ts' }),
+      cfg,
+      existsNone,
+    );
+    expect(findings.map((f) => f.message)).toEqual(['resource not found: gone.ts']);
+  });
+});
+
 describe('okfCheck.run', () => {
   const filesOf = (entries: Record<string, string>): FileSet => ({
     paths: Object.keys(entries),
@@ -156,6 +186,13 @@ describe('okfCheck.run', () => {
     const findings = await okfCheck.run(ctx(files));
     expect(findings.every((f) => f.path === 'docs/bad.md')).toBe(true);
     expect(findings.length).toBeGreaterThan(0);
+  });
+
+  it('accepts a resource-free Subsystem page on the default vocabulary', async () => {
+    const files = filesOf({
+      'docs/area.md': page({ type: 'Subsystem', title: 'x', description: 'y' }),
+    });
+    expect(await okfCheck.run(ctx(files))).toEqual([]);
   });
 
   it('respects custom roots and exempt lists from config', async () => {

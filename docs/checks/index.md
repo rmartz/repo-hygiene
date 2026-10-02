@@ -1,8 +1,8 @@
 # Checks
 
 The checks `@rmartz/repo-hygiene` ships, each an independent module in the
-registry. **Default-on** checks run with no configuration — some at `warn`
-severity, advisory until a repo sets `severity: error`; **opt-in** checks
+registry. **Default-on** checks run with no configuration, at `error` severity;
+a repo relaxes one with `severity: warn` or a laxer option. **Opt-in** checks
 ship in the package but stay dormant until a repo names them in its caller's
 `checks` input. Any default-on check can be turned off per repo with
 `enabled: false`. See the
@@ -10,17 +10,17 @@ ship in the package but stay dormant until a repo names them in its caller's
 default-on or opt-in, the [overview](../overview.md) for how to run them, and
 [authoring a check](../authoring-a-check.md) to add one.
 
-| Check                                     | Default   | Flags                                                                   |
-| ----------------------------------------- | --------- | ----------------------------------------------------------------------- |
-| [`conflict-markers`](conflict-markers.md) | on        | Leftover Git merge-conflict markers.                                    |
-| [`action-pins`](action-pins.md)           | on        | GitHub Actions `uses:` refs not SHA-pinned with a full-semver comment.  |
-| [`docs-links`](docs-links.md)             | on        | Intra-repo Markdown links whose target no longer exists.                |
-| [`file-caps`](file-caps.md)               | on        | Files exceeding per-glob line/byte caps (two-tier shared defaults).     |
-| [`okf`](okf.md)                           | on (warn) | OKF frontmatter (type/title/description/resource) violations.           |
-| [`okf-index`](okf-index.md)               | on (warn) | OKF bundle navigability + no-frontmatter-on-index.                      |
-| [`md-pairing`](md-pairing.md)             | on (warn) | `CLAUDE.md`/`AGENTS.md` not paired as regular files.                    |
-| [`package-pins`](package-pins.md)         | opt-in    | `package.json` deps not pinned to a full `major.minor.patch`.           |
-| [`action-pin-tags`](action-pin-tags.md)   | opt-in    | Pin comments naming no upstream tag, or a tag at another SHA (network). |
+| Check                                     | Default | Flags                                                                   |
+| ----------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| [`conflict-markers`](conflict-markers.md) | on      | Leftover Git merge-conflict markers.                                    |
+| [`action-pins`](action-pins.md)           | on      | GitHub Actions `uses:` refs not SHA-pinned with a full-semver comment.  |
+| [`docs-links`](docs-links.md)             | on      | Intra-repo Markdown links whose target file or `#anchor` is gone.       |
+| [`file-caps`](file-caps.md)               | on      | Files exceeding per-glob line/byte caps (error-only shared defaults).   |
+| [`okf`](okf.md)                           | on      | OKF frontmatter (type/title/description/resource) violations.           |
+| [`okf-index`](okf-index.md)               | on      | OKF bundle navigability + no-frontmatter-on-index.                      |
+| [`md-pairing`](md-pairing.md)             | on      | `CLAUDE.md`/`AGENTS.md` not paired, or `CLAUDE.md` not a bare wrapper.  |
+| [`package-pins`](package-pins.md)         | on      | `package.json` deps not pinned to a full `major.minor.patch`.           |
+| [`action-pin-tags`](action-pin-tags.md)   | opt-in  | Pin comments naming no upstream tag, or a tag at another SHA (network). |
 
 `md-links` and `okf-fields` are **shared modules** (inline-link parsing and OKF
 optional-field validation) consumed by the checks above, not separately registered

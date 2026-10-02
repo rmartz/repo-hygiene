@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: The distribution contract
-description: Why a repo-hygiene check must be safe with no config, how the defaultOn flag drives the default-on set, how default severity and the enabled:false opt-out work, and the package-pins call.
+description: Why repo-hygiene checks are strict by default and relaxed per repo, how the defaultOn flag drives the default-on set, the escape hatches a consumer uses, and why network checks stay opt-in.
 tags: [hygiene, ci, distribution]
 ---
 
@@ -10,11 +10,18 @@ tags: [hygiene, ci, distribution]
 Consumers run these checks through the
 [`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action)
 GitHub Action, pinned by version and bumped by Dependabot (see
-[how a check reaches consumers](consumer-path.md)). For a **new check to reach
-consumers with no per-repo work**, it must be safe to run with no configuration —
-either it does something universally correct with sane defaults, or it no-ops until
-opted into via `.repo-hygiene.yml`. A check that _requires_ new config to avoid
-failing would break every consumer's CI the moment it ships, so that is disallowed.
+[how a check reaches consumers](consumer-path.md)). The defaults are **strict**: each default-on check enforces the fleet convention
+at `error` with no configuration, and a repo that intentionally needs laxer rules
+relaxes them in its `.repo-hygiene.yml`. The target is that the reference
+consumer, `rmartz/firebase-nextjs-template`, runs on pure package defaults with no
+custom config.
+
+What a check must not do is fail a consumer with **no way out but a code change**.
+Every default-on finding has a one-line escape hatch in `.repo-hygiene.yml` (see
+[escape hatches](#escape-hatches)), so a consumer whose CI goes red on a bump
+can relax the rule the same day and fix the backlog on its own schedule. A change
+that makes a default stricter ships as a breaking release (`feat!` / `fix!`) whose
+notes name the escape hatch.
 
 ## The `defaultOn` flag
 
@@ -26,45 +33,37 @@ a newly-added default-on check auto-joins every consumer on the next Dependabot
 bump with no edit there. Opinionated checks leave `defaultOn` unset and are opt-in
 per repo (named explicitly in the caller's `checks` input).
 
-## Default severity and the opt-out
+## Strict by default
 
-Being default-on does not mean a check must _block_ every consumer. A check may
-declare a `defaultSeverity` of `warn` (`src/types.ts`), so its findings surface
-everywhere but exit `0` until a repo opts into enforcement with `severity: error`.
-`okf`, `okf-index`, and `md-pairing` ship this way — on by default but advisory,
-because a repo that has not adopted OKF or the `CLAUDE.md`/`AGENTS.md` convention
-should be nudged, not broken, on arrival. `conflict-markers`, `action-pins`, and
-`docs-links` stay at `error` (a leftover marker, an unpinned action, or a broken
-link is never intentional).
+Every built-in check reports its findings at `error`. A warning exits `0`, so a
+default `warn` tier passes CI silently and only accumulates; the fleet takes the
+same zero-soft-tier stance as `eslint --max-warnings 0`. `okf`, `okf-index`, and
+`md-pairing` used to ship at `warn` so a repo that had not adopted OKF or the
+`CLAUDE.md`/`AGENTS.md` convention was nudged rather than broken; that ramp is now
+opt-in per repo instead. The same goes for the stricter option defaults:
+`docs-links` validates `#anchors`, `md-pairing` enforces the bare `@AGENTS.md`
+wrapper, `package-pins` is default-on, and `file-caps` ships error-only caps
+(see [`file-caps`](checks/file-caps.md#shared-defaults)).
 
-### `file-caps`: the deliberate on-arrival exception
+A check may still declare a `defaultSeverity` of `warn` (`src/types.ts`), but none
+of the built-in checks do. A new check that can't enforce safely by default should
+stay opt-in rather than ship at `warn`.
 
-`file-caps` is the one default-on check whose shared defaults carry an `error`
-tier, so it can **hard-fail a consumer's CI on the next bump** — a considered
-departure from the nudge-don't-break posture above. A fleet-wide size standard is
-only worth having if it actually gates; the defaults are meant to break loudly so a
-repo notices and responds, rather than accumulating silent warnings forever. The
-break is bounded and self-service: repo `overrides` match **first**, so a consumer
-sets a laxer `error` cap for any glob, exempts existing over-cap files — via
-`mode: ratchet` or `mode: grandfather`, both of which downgrade them to `warn` — or
-opts out with
-`enabled: false` — each a one-line change surfaced by the failing CI run. This is
-the intended exception to "must be safe with no config," accepted for `file-caps`
-alone; a new check does not get to copy it without the same deliberate decision.
+## Escape hatches
 
-Every default-on check is **opt-out** per repo: set `enabled: false` in its
-`.repo-hygiene.yml` section and the runner skips it entirely — the escape hatch for
-a check a repo genuinely cannot satisfy, without re-enumerating the whole `checks`
-list (which would forfeit auto-join of future default-on checks).
+A consumer relaxes a default in its `.repo-hygiene.yml` section for that check:
 
-## The `package-pins` call
-
-[`package-pins`](checks/package-pins.md) is the notable case: it is config-free
-like [`action-pins`](checks/action-pins.md) (its npm analog) but is **not**
-default-on, because promoting it would break consumers whose `package.json` uses
-abbreviated ranges — exactly the on-arrival breakage this contract forbids.
-Config-free is necessary but not sufficient for default-on; making it a fleet
-default is a separate, deliberate decision.
+- **`severity: warn`**: report the check's findings without failing CI. This is
+  the migration ramp while a backlog is worked off.
+- **A laxer option**: e.g. `anchors: false` or `anchorExempt` (`docs-links`),
+  `wrapper: false` (`md-pairing`), a custom `types` vocabulary (`okf`), or a laxer
+  `error` cap for a glob (`file-caps`, where repo `overrides` match first).
+- **`mode: ratchet` / `mode: grandfather`** (`file-caps`): exempt files already
+  over cap on the base ref, so adopting a tighter cap needs no commit to existing
+  files.
+- **`enabled: false`**: the runner skips the check entirely. This is the opt-out
+  for a check a repo genuinely can't satisfy. It doesn't require re-listing the
+  whole `checks` input, which would forfeit auto-join of future default-on checks.
 
 ## Network-dependent checks stay opt-in
 
