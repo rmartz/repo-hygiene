@@ -49,8 +49,7 @@ export interface FileMetrics {
  */
 export function computeMetrics(path: string, text: string): FileMetrics {
   const binary = text.includes('\0');
-  const lines =
-    text === '' || binary ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
+  const lines = text === '' || binary ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
   return { path, lines, bytes: Buffer.byteLength(text, 'utf8') };
 }
 
