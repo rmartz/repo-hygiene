@@ -8,11 +8,11 @@ tags: [hygiene, ci, checks, docs, okf]
 
 # `okf-index`
 
-**Default:** on (warn) · **Config:** `roots`, `indexName`, `nestedIndexes`, `noUpwardLinks`, `noSiblingLinks` · **Opt out:** `enabled: false`
+**Default:** on · **Config:** `roots`, `indexName`, `nestedIndexes`, `noUpwardLinks`, `noSiblingLinks` · **Opt out:** `enabled: false`
 
-Default-on at `warn` severity (like [`okf`](okf.md)): navigability findings surface
-everywhere without failing a repo whose `docs/` is not yet an OKF bundle. Enforce
-with `severity: error`, or turn it off with `enabled: false`.
+Default-on at `error` severity (like [`okf`](okf.md)). A repo whose `docs/` isn't
+an OKF bundle yet relaxes it with `severity: warn`, or turns it off with
+`enabled: false`.
 
 The docs-bundle navigability invariant that [`okf`](okf.md) (frontmatter) does not
 cover. Every content page must be reachable from a root `index.md` by following

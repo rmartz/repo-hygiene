@@ -5,7 +5,7 @@ import { parseLinkTarget, resolveRel, scanLinks } from './md-links.js';
 
 /**
  * Docs link integrity — intra-repo relative Markdown links must resolve to a
- * file that exists, and (when `anchors` is enabled) their `#anchor` fragment must
+ * file that exists, and (unless `anchors: false`) their `#anchor` fragment must
  * match a heading or explicit anchor in the target page. `okf` validates only a
  * page's `resource:` frontmatter target and `okf-index` only that content pages
  * are *reachable* from an index; neither checks that the inline `[text](path)`
@@ -24,7 +24,7 @@ const NAME = 'docs-links';
 
 const DEFAULT_ROOTS = ['docs'];
 const DEFAULT_EXEMPT: string[] = [];
-const DEFAULT_ANCHORS = false;
+const DEFAULT_ANCHORS = true;
 
 /** Anchors resolver: the anchor set of a target page, or `null` to skip (non-md/unreadable). */
 export type AnchorsFor = (target: string) => ReadonlySet<string> | null;
@@ -169,7 +169,7 @@ function referencedMdTargets(path: string, content: string): string[] {
 export const docsLinksCheck: Check = {
   name: NAME,
   description:
-    'Intra-repo relative Markdown links in docs pages must resolve to a file on disk; optionally validate #anchors.',
+    'Intra-repo relative Markdown links in docs pages must resolve to a file on disk, and their #anchors to a heading.',
   // Default-on: a broken intra-repo link is never intentional, and the check
   // no-ops on a repo with no docs/ — safe to run on an arbitrary repo unconfigured.
   defaultOn: true,

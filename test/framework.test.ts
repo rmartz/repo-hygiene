@@ -75,24 +75,28 @@ describe('registry defaultNames', () => {
     expect(registry.defaultNames()).toEqual(['b', 'c']);
   });
 
-  it('the built-in default-on set is every check except the opt-in package-pins', () => {
+  it('the built-in default-on set is every check except the network-dependent action-pin-tags', () => {
     expect(createRegistry().defaultNames()).toEqual([
       'conflict-markers',
       'okf',
       'okf-index',
       'docs-links',
       'action-pins',
+      'package-pins',
       'md-pairing',
       'file-caps',
     ]);
   });
 
-  it('package-pins is the only opt-in check', () => {
-    const defaults = createRegistry().defaultNames();
-    expect(defaults).not.toContain('package-pins');
-    for (const name of ['docs-links', 'md-pairing', 'okf', 'okf-index', 'file-caps']) {
-      expect(defaults).toContain(name);
-    }
+  it('action-pin-tags is the only opt-in check', () => {
+    const registry = createRegistry();
+    expect(registry.names().filter((n) => !registry.defaultNames().includes(n))).toEqual([
+      'action-pin-tags',
+    ]);
+  });
+
+  it('no built-in check softens its findings to warn by default', () => {
+    for (const check of createRegistry().all()) expect(check.defaultSeverity).toBeUndefined();
   });
 });
 

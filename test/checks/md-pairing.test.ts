@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluatePairing } from '../../src/checks/md-pairing.js';
+import { evaluatePairing, resolveWrapper } from '../../src/checks/md-pairing.js';
 
 const REG = '100644';
 const LINK = '120000';
@@ -87,5 +87,20 @@ describe('evaluatePairing — bare-wrapper rule', () => {
     // AGENTS.md holds directives; only CLAUDE.md must be the bare wrapper.
     const contents = new Map([['CLAUDE.md', '@AGENTS.md\n']]);
     expect(evaluatePairing(paired, { wrapper, contents })).toEqual([]);
+  });
+});
+
+describe('resolveWrapper', () => {
+  it('defaults to the bare @AGENTS.md wrapper when unset or true', () => {
+    expect(resolveWrapper({})).toBe('@AGENTS.md');
+    expect(resolveWrapper({ wrapper: true })).toBe('@AGENTS.md');
+  });
+
+  it('turns the rule off with wrapper: false', () => {
+    expect(resolveWrapper({ wrapper: false })).toBeUndefined();
+  });
+
+  it('honours a custom import line', () => {
+    expect(resolveWrapper({ wrapper: '@docs/AGENTS.md' })).toBe('@docs/AGENTS.md');
   });
 });

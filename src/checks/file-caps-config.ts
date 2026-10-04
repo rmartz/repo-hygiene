@@ -90,84 +90,59 @@ function asLineCount(value: unknown, glob: string): number {
 /** Extensions treated as source code by the shared line/byte caps. */
 const CODE_EXTS = 'ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs';
 
+const TEST_CAP = { lines: { error: 600 }, bytes: { error: 128 * 1024 } };
+const DIRECTIVE_CAP = { lines: { error: 300 }, bytes: { error: 48 * 1024 } };
+
 /**
- * Two-tier fleet defaults — a `warn` nudge below a hard `error` cap — applied
- * beneath a repo's own `overrides` (which match first). Unlike the other default-on
- * checks, `file-caps` ships an `error` tier in its defaults, so a repo that
- * configures nothing still *hard-gates* on file size. This is a deliberate
- * departure from the usual warn-on-arrival posture (see
- * `docs/distribution-contract.md`): the change is meant to break loudly in a
- * consumer's CI on the next bump, and the consumer rectifies by grandfathering
- * existing over-cap files (`mode: ratchet` or `grandfather`), setting a laxer
- * `error` cap for a glob in `.repo-hygiene.yml` (repo overrides match first), or
- * opting out with `enabled: false`.
+ * Error-only fleet defaults, applied beneath a repo's own `overrides` (which
+ * match first). There is no `warn` tier: a warning exits 0, so a soft tier passes
+ * CI silently and only accumulates (the same stance as `eslint --max-warnings 0`).
+ * A repo that wants a nudge below a cap adds a `warn` in its own override. A repo
+ * with existing over-cap files migrates with `mode: ratchet` or `grandfather`,
+ * sets a laxer `error` cap for a glob, or opts out with `enabled: false`.
  *
  * Order matters: entries are first-match-wins, so the narrower globs come first.
- *   1. Agent directive files (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
- *      and `.cursor/rules/*.mdc`) — the tightest cap (warn 200 / error 300 lines). A
- *      directive file earns its keep only if the model actually reads it; Claude and
- *      Cursor guidance both push toward short, focused instruction files.
- *   2. Test files — the widest cap (warn 800 / error 1200 lines). Table-driven
- *      cases, fixtures, and exhaustive assertions legitimately run longer than code.
- *   3. Production code — warn 400 / error 600 lines.
- *   4. Markdown / docs — warn 700 / error 1000 lines.
+ *   1. Generated files (lockfiles, snapshots, changelogs, minified bundles,
+ *      source maps) — uncapped: an entry with no tier caps nothing.
+ *   2. Agent directive files (`AGENTS.md` / `CLAUDE.md`, plus Cursor's
+ *      `.cursorrules` and `.cursor/rules/*.mdc`) — 300 lines. A directive file
+ *      earns its keep only if the model reads it in full.
+ *   3. Test files — 600 lines. Table-driven cases and fixtures run longer.
+ *   4. Production code — 400 lines.
+ *   5. Markdown — 400 lines.
+ *   6. Everything else (`.sh`, `.yml`, `.json`, …) — 400 lines. Lines only, so
+ *      binary assets are not byte-capped, and a binary file has no line count
+ *      (see `computeMetrics`).
  *
- * Byte caps track the same tiers. The two-tier scheme and the warn:error ratio
- * follow the model documented in hidden-role-game's AGENTS.md, widened for the
- * arbitrary consumer repo.
+ * The values are the ones `rmartz/firebase-nextjs-template` and
+ * `rmartz/hidden-role-game` enforce, and line up with an eslint `max-lines` of
+ * 400 for code and 600 for specs.
  */
 export const DEFAULT_OVERRIDES: OverrideEntry[] = [
-  // Agent directive files: the tightest cap, kept short and focused. Covers
-  // AGENTS.md / CLAUDE.md plus Cursor's .cursorrules and .cursor/rules/*.mdc.
+  // Generated files: uncapped. Their size is set by tooling, not authors.
   {
-    glob: '**/{AGENTS,CLAUDE}.md',
-    lines: { warn: 200, error: 300 },
-    bytes: { warn: 32 * 1024, error: 48 * 1024 },
+    glob: '**/{pnpm-lock.yaml,package-lock.json,npm-shrinkwrap.json,yarn.lock,bun.lock,go.sum,Cargo.lock,poetry.lock,uv.lock,Pipfile.lock,Gemfile.lock,composer.lock}',
   },
-  {
-    glob: '**/.cursorrules',
-    lines: { warn: 200, error: 300 },
-    bytes: { warn: 32 * 1024, error: 48 * 1024 },
-  },
-  {
-    glob: '**/.cursor/rules/**/*.mdc',
-    lines: { warn: 200, error: 300 },
-    bytes: { warn: 32 * 1024, error: 48 * 1024 },
-  },
-  // Test files: the widest cap. Suffix conventions across languages…
-  {
-    glob: '**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}',
-    lines: { warn: 800, error: 1200 },
-    bytes: { warn: 96 * 1024, error: 128 * 1024 },
-  },
-  {
-    glob: '**/*_{test,spec}.{go,py,rb}',
-    lines: { warn: 800, error: 1200 },
-    bytes: { warn: 96 * 1024, error: 128 * 1024 },
-  },
-  {
-    glob: '**/test_*.py',
-    lines: { warn: 800, error: 1200 },
-    bytes: { warn: 96 * 1024, error: 128 * 1024 },
-  },
+  { glob: '**/CHANGELOG.md' },
+  { glob: '**/__snapshots__/**' },
+  { glob: '**/*.{snap,map}' },
+  { glob: '**/*.min.{js,css}' },
+  // Agent directive files: the tightest cap, kept short and focused.
+  { glob: '**/{AGENTS,CLAUDE}.md', ...DIRECTIVE_CAP },
+  { glob: '**/.cursorrules', ...DIRECTIVE_CAP },
+  { glob: '**/.cursor/rules/**/*.mdc', ...DIRECTIVE_CAP },
+  // Test files. Suffix conventions across languages…
+  { glob: '**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}', ...TEST_CAP },
+  { glob: '**/*_{test,spec}.{go,py,rb}', ...TEST_CAP },
+  { glob: '**/test_*.py', ...TEST_CAP },
   // …plus any code file under a conventional test directory.
-  {
-    glob: `**/{__tests__,test,tests,spec,specs}/**/*.{${CODE_EXTS}}`,
-    lines: { warn: 800, error: 1200 },
-    bytes: { warn: 96 * 1024, error: 128 * 1024 },
-  },
+  { glob: `**/{__tests__,test,tests,spec,specs}/**/*.{${CODE_EXTS}}`, ...TEST_CAP },
   // Production code.
-  {
-    glob: `**/*.{${CODE_EXTS}}`,
-    lines: { warn: 400, error: 600 },
-    bytes: { warn: 48 * 1024, error: 64 * 1024 },
-  },
+  { glob: `**/*.{${CODE_EXTS}}`, lines: { error: 400 }, bytes: { error: 64 * 1024 } },
   // Markdown / docs.
-  {
-    glob: '**/*.md',
-    lines: { warn: 700, error: 1000 },
-    bytes: { warn: 96 * 1024, error: 128 * 1024 },
-  },
+  { glob: '**/*.md', lines: { error: 400 }, bytes: { error: 96 * 1024 } },
+  // Every other tracked file.
+  { glob: '**/*', lines: { error: 400 } },
 ];
 
 /**

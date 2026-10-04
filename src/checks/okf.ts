@@ -6,8 +6,8 @@ import { validateOptionalFields } from './okf-fields.js';
 /**
  * Open Knowledge Format frontmatter conformance for docs pages. Every
  * docs page except the reserved files must carry a non-empty `type` plus a
- * `title` and `description`; a non-exempt type must name a `resource` that
- * exists.
+ * `title` and `description`; a non-exempt type must name a `resource`, and any
+ * `resource` a page names — exempt type or not — must exist.
  *
  * The OKF spec makes `type` the only always-required key and leaves its
  * vocabulary **open** to the producer, so `types` accepts either a closed list
@@ -22,10 +22,11 @@ import { validateOptionalFields } from './okf-fields.js';
 
 const NAME = 'okf';
 
-const DEFAULT_TYPES = ['Skill', 'Script', 'Library', 'Design'];
+const DEFAULT_TYPES = ['Design', 'Library', 'Script', 'Skill', 'Subsystem'];
 const DEFAULT_ROOTS = ['docs'];
 const DEFAULT_EXEMPT: string[] = [];
-const DEFAULT_RESOURCE_EXEMPT_TYPES = ['Design'];
+// `Design` and `Subsystem` pages describe an area rather than a single file.
+const DEFAULT_RESOURCE_EXEMPT_TYPES = ['Design', 'Subsystem'];
 // OKF reserves these filenames for navigation (`index.md`) and update history
 // (`log.md`); the spec forbids them as concept documents, so they never carry
 // OKF frontmatter and are skipped wherever they appear.
@@ -108,17 +109,17 @@ export function validateDoc(
 
   // `resource` is optional in the spec; this repo still requires one for every
   // non-exempt type (including a missing type), unless resources are waived
-  // wholesale with `resourceExemptTypes: "*"`.
+  // wholesale with `resourceExemptTypes: "*"`. Exemption only waives the
+  // requirement: a resource that is set is always validated, since agents follow
+  // it to the documented source whatever the page's type.
   const resourceExempt =
     cfg.resourceExemptTypes === '*' ||
     (type !== undefined && cfg.resourceExemptTypes.includes(type));
-  if (!resourceExempt) {
-    const resource = data.resource;
-    if (typeof resource !== 'string' || resource === '') {
-      push(`${type ?? 'this'} page needs a resource`);
-    } else if (!existsFn(resource)) {
-      push(`resource not found: ${resource}`);
-    }
+  const resource = data.resource;
+  if (typeof resource !== 'string' || resource === '') {
+    if (!resourceExempt) push(`${type ?? 'this'} page needs a resource`);
+  } else if (!existsFn(resource)) {
+    push(`resource not found: ${resource}`);
   }
 
   // OKF v0.2 optional lifecycle / trust / provenance field families (validated
@@ -131,11 +132,9 @@ export function validateDoc(
 export const okfCheck: Check = {
   name: NAME,
   description: 'Open Knowledge Format frontmatter conformance for docs pages.',
-  // Default-on but warn by default: surfaces missing/invalid frontmatter on every
-  // repo without failing one that has docs/ but has not adopted OKF. A repo
-  // enforces it with `severity: error` once its docs conform.
+  // Default-on at error: a repo whose docs/ has not adopted OKF relaxes it with
+  // `severity: warn` or opts out with `enabled: false`.
   defaultOn: true,
-  defaultSeverity: 'warn',
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     // In --staged mode ctx.files.read reads the git index; repoPathExists probes
