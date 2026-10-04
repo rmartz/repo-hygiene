@@ -276,10 +276,9 @@ export function evaluateOkfIndex(files: DocFile[], cfg: OkfIndexConfig): Finding
 export const okfIndexCheck: Check = {
   name: NAME,
   description: 'OKF docs bundle is navigable via index.md links; index pages carry no frontmatter.',
-  // Default-on but warn by default (see okf): navigability findings surface
-  // everywhere without failing a repo whose docs/ is not yet an OKF bundle.
+  // Default-on at error (like okf): a repo whose docs/ is not an OKF bundle
+  // relaxes it with `severity: warn` or opts out with `enabled: false`.
   defaultOn: true,
-  defaultSeverity: 'warn',
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     const paths = (await trackedFiles({ cwd: ctx.cwd })).filter(

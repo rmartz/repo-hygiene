@@ -1,7 +1,7 @@
 ---
 type: Library
 title: The docs-links check
-description: Flags intra-repo Markdown links in docs pages whose target file — or, optionally, whose #anchor — does not exist; on by default.
+description: Flags intra-repo Markdown links in docs pages whose target file or #anchor does not exist; on by default, anchors included.
 resource: src/checks/docs-links.ts
 tags: [hygiene, ci, checks, docs]
 ---
@@ -11,7 +11,7 @@ tags: [hygiene, ci, checks, docs]
 **Default:** on · **Config:** `roots`, `exempt`, `anchors`, `anchorExempt` · **Opt out:** `enabled: false`
 
 Intra-repo Markdown link integrity: every relative Markdown link in a docs page
-must resolve to a file that exists, and — when `anchors` is enabled — its
+must resolve to a file that exists, and (unless `anchors: false`) its
 `#anchor` fragment must point at a real section in the target page. When a docs
 page, a source file, or a heading is renamed, moved, or deleted, such a link
 silently rots — it still parses, but a reader hits a 404 or lands nowhere.
@@ -24,7 +24,7 @@ neither checks the inline body links.
 - **Broken file targets (always):** every intra-repo link target — relative
   Markdown links between docs pages and links from `docs/**` into source — whose
   file part no longer exists on disk.
-- **Broken anchors (opt-in, `anchors: true`):** a link whose file resolves but
+- **Broken anchors (default; off with `anchors: false`):** a link whose file resolves but
   whose `#anchor` matches no heading or explicit anchor in the target. Covers
   both **same-document** (`#section`) and **cross-document**
   (`other.md#section`) links to Markdown files.
@@ -55,11 +55,12 @@ checks:
   docs-links:
     roots: [docs] # directories whose .md pages are scanned (default: [docs])
     exempt: [] # resolved target file paths allowed to dangle (intentionally missing)
-    anchors: false # validate #anchor fragments (default: false — opt-in)
+    anchors: true # validate #anchor fragments (default: true; false checks files only)
     anchorExempt: [] # anchors allowed to dangle: "target.md#id", "#id", or the raw href
 ```
 
-`anchors` is **off by default** even when the check is enabled: slug parity is
-best-effort, so anchor validation is opt-in to keep a first adoption of
-`docs-links` from failing on a parity edge case. Turn it on once file-target
-integrity is green.
+`anchors` is **on by default**: a renamed heading breaks a link exactly as badly
+as a deleted file. Slug parity with GitHub is best-effort, so list a link that
+trips a parity edge case in `anchorExempt`. To check file targets only, for
+example while adopting the check on a repo with many stale anchors, set
+`anchors: false`.

@@ -11,6 +11,14 @@ describe('computeMetrics', () => {
     expect(computeMetrics('a.ts', '')).toEqual({ path: 'a.ts', lines: 0, bytes: 0 });
   });
 
+  it('gives a binary file (one with a NUL byte) no line count, only bytes', () => {
+    expect(computeMetrics('a.png', '\x89PNG\0\n\n\n')).toEqual({
+      path: 'a.png',
+      lines: 0,
+      bytes: 9,
+    });
+  });
+
   it('measures bytes, not characters, for multibyte content', () => {
     expect(computeMetrics('a.ts', '€').bytes).toBe(3);
   });

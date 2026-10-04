@@ -5,8 +5,9 @@ import { dirname, join } from 'node:path';
 import type { FileSet } from '../../src/discovery.js';
 import { checkDocLinks, docsLinksCheck } from '../../src/checks/docs-links.js';
 
-const DEFAULTS = { roots: ['docs'], exempt: [], anchors: false, anchorExempt: [] };
-const ANCHORS_ON = { ...DEFAULTS, anchors: true };
+const ANCHORS_OFF = { roots: ['docs'], exempt: [], anchors: false, anchorExempt: [] };
+const ANCHORS_ON = { ...ANCHORS_OFF, anchors: true };
+const DEFAULTS = ANCHORS_OFF;
 const exists = (present: string[]) => {
   const set = new Set(present);
   return (target: string) => set.has(target);
@@ -59,7 +60,7 @@ describe('checkDocLinks', () => {
     expect(checkDocLinks('docs/a.md', '[g](./generated.md)', cfg, exists([]))).toEqual([]);
   });
 
-  it('leaves anchors unchecked when anchors is off (default)', () => {
+  it('leaves anchors unchecked when anchors is off', () => {
     const content = '[x](./b.md#nope) and [y](#gone)';
     const anchors = anchorsOf({ 'docs/b.md': ['ok'], 'docs/a.md': ['here'] });
     expect(checkDocLinks('docs/a.md', content, DEFAULTS, exists(['docs/b.md']), anchors)).toEqual(
@@ -198,6 +199,20 @@ describe('docsLinksCheck.run', () => {
     const files = filesOf({ 'guides/b.md': '[y](./missing.md)' });
     const findings = await docsLinksCheck.run(ctx(files, { roots: ['guides'] }));
     expect(findings.map((f) => f.path)).toContain('guides/b.md');
+  });
+
+  const writeEntries = (entries: Record<string, string>): void => {
+    for (const [p, c] of Object.entries(entries)) {
+      mkdirSync(join(dir, dirname(p)), { recursive: true });
+      writeFileSync(join(dir, p), c);
+    }
+  };
+
+  it('validates anchors by default, and skips them with anchors: false', async () => {
+    const entries = { 'docs/a.md': '[bad](./b.md#ghost)', 'docs/b.md': '# Setup\n' };
+    writeEntries(entries);
+    expect(await docsLinksCheck.run(ctx(filesOf(entries)))).toHaveLength(1);
+    expect(await docsLinksCheck.run(ctx(filesOf(entries), { anchors: false }))).toEqual([]);
   });
 
   it('validates same-doc and cross-doc anchors when enabled, reading real target pages', async () => {

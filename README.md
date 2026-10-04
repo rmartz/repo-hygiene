@@ -62,14 +62,17 @@ Both files are seeded once by [`@rmartz/bootstrap`](https://github.com/rmartz/ai
 
 **Omit the `checks` input** and the Action runs the registry's default-on set —
 and a newly-added default-on check auto-joins on your next Dependabot bump with no
-edit here. To opt into repo-specific checks, name them explicitly (this becomes
-the _exact_ run list, so include the defaults you still want) and point at a
-config:
+edit here. The defaults are strict: every default-on check enforces at `error`.
+A repo that intentionally needs laxer rules relaxes them per check in its
+`.repo-hygiene.yml` (`severity: warn`, a laxer option, or `enabled: false`)
+rather than trimming the list. To add the opt-in `action-pin-tags`, name the
+checks explicitly (this becomes the _exact_ run list, so include the defaults
+you still want):
 
 ```yaml
 - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
   with:
-    checks: conflict-markers action-pins docs-links okf
+    checks: conflict-markers action-pins package-pins docs-links md-pairing okf okf-index file-caps action-pin-tags
     config: .repo-hygiene.yml
 ```
 
