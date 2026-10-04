@@ -1,5 +1,6 @@
 import { boundedRun } from '../lib/bounded-subprocess.js';
 import type { BaseRefMode } from './file-caps-config.js';
+import { InconclusiveError } from '../outcome.js';
 
 /**
  * Base-ref reads for the file-caps `ratchet` and `grandfather` modes: whether a
@@ -22,7 +23,7 @@ const git = (args: string[], cwd: string) =>
 export async function assertBaseRef(base: string, mode: BaseRefMode, cwd: string): Promise<void> {
   const r = await git(['rev-parse', '--verify', '--quiet', `${base}^{commit}`], cwd);
   if (r.timedOut)
-    throw new Error(`file-caps: timed out verifying base ref ${JSON.stringify(base)}`);
+    throw new InconclusiveError(`file-caps: timed out verifying base ref ${JSON.stringify(base)}`);
   if (r.code !== 0) {
     throw new Error(
       `file-caps: mode: ${mode} cannot resolve base ref ${JSON.stringify(base)}; ` +
@@ -43,7 +44,8 @@ export async function readAtBase(
   const out = new Map<string, string>();
   for (const path of paths) {
     const r = await git(['show', `${base}:${path}`], cwd);
-    if (r.timedOut) throw new Error(`file-caps: timed out reading ${path} at ${base}`);
+    // A timeout says nothing about the change, so the run is inconclusive.
+    if (r.timedOut) throw new InconclusiveError(`file-caps: timed out reading ${path} at ${base}`);
     if (r.code === 0) out.set(path, r.stdout);
   }
   return out;
