@@ -78,13 +78,24 @@ describe('resolveFileCapsOverrides', () => {
     expect(entries).toEqual(DEFAULT_OVERRIDES);
   });
 
-  it('ships two-tier defaults — every glob hard-gates with warn below error', () => {
+  it('ships error-only defaults — no glob carries a warn tier', () => {
     for (const entry of DEFAULT_OVERRIDES) {
-      expect(entry.lines?.error).toBeGreaterThan(0);
-      expect(entry.lines?.warn).toBeLessThan(entry.lines?.error ?? 0);
-      expect(entry.bytes?.error).toBeGreaterThan(0);
-      expect(entry.bytes?.warn).toBeLessThan(entry.bytes?.error ?? 0);
+      expect(entry.lines?.warn).toBeUndefined();
+      expect(entry.bytes?.warn).toBeUndefined();
     }
+  });
+
+  it('leaves generated files uncapped (an entry with no tier)', () => {
+    for (const glob of ['**/CHANGELOG.md', '**/__snapshots__/**', '**/*.min.{js,css}']) {
+      expect(DEFAULT_OVERRIDES.find((e) => e.glob === glob)).toEqual({ glob });
+    }
+    const lockfiles = DEFAULT_OVERRIDES[0];
+    expect(lockfiles?.glob).toContain('pnpm-lock.yaml');
+    expect(lockfiles?.lines).toBeUndefined();
+  });
+
+  it('ends with a lines-only catch-all, so binary assets are never byte-capped', () => {
+    expect(DEFAULT_OVERRIDES.at(-1)).toEqual({ glob: '**/*', lines: { error: 400 } });
   });
 
   it("puts a repo's overrides ahead of the shared defaults (first-match-wins)", () => {
@@ -105,18 +116,18 @@ describe('resolveFileCapsOverrides', () => {
       const entry = DEFAULT_OVERRIDES.find((e) => e.glob === glob);
       expect(entry).toEqual({
         glob,
-        lines: { warn: 200, error: 300 },
-        bytes: { warn: 32 * 1024, error: 48 * 1024 },
+        lines: { error: 300 },
+        bytes: { error: 48 * 1024 },
       });
     }
   });
 
-  it('gives every test-file default the widest cap (error 1200 lines / 128 KB)', () => {
+  it('gives every test-file default the widest cap (error 600 lines / 128 KB)', () => {
     const testGlobs = DEFAULT_OVERRIDES.filter((e) => /test|spec/.test(e.glob));
     expect(testGlobs.length).toBeGreaterThan(0);
     for (const entry of testGlobs) {
-      expect(entry.lines).toEqual({ warn: 800, error: 1200 });
-      expect(entry.bytes).toEqual({ warn: 96 * 1024, error: 128 * 1024 });
+      expect(entry.lines).toEqual({ error: 600 });
+      expect(entry.bytes).toEqual({ error: 128 * 1024 });
     }
   });
 

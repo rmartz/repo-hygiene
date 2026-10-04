@@ -53,5 +53,4 @@ not a pin).
 
 SHA-pinning is the security floor the hygiene suite exists to spread; it needs no
 config and only inspects `.github/**` workflow YAML, so it is safe on any
-consumer. Its npm analog [`package-pins`](package-pins.md) is deliberately **not**
-default-on — see the [distribution contract](../distribution-contract.md).
+consumer. Its npm analog [`package-pins`](package-pins.md) is default-on too.
