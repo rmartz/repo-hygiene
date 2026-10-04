@@ -42,15 +42,19 @@ tags: [hygiene, ci, checks] # optional
 This repo runs the **code-documentation flavour** of the `okf` check, so it is stricter than
 the open OKF spec in two ways:
 
-- **`type`** is required and constrained to a curated vocabulary — **`Skill`**,
-  **`Script`**, **`Library`**, **`Design`**, plus **`Reference`** for concept /
-  guide pages like this one. (The upstream spec leaves `type` open; we narrow it
+- **`type`** is required and constrained to a curated vocabulary. The package
+  default is **`Design`**, **`Library`**, **`Script`**, **`Skill`**, and
+  **`Subsystem`** (a conceptual area, with no single source file). This repo
+  replaces it with **`Skill`**, **`Script`**, **`Library`**, **`Design`**, plus
+  **`Reference`** for concept / guide pages like this one. (The upstream spec leaves `type` open; we narrow it
   because every page here documents code or a convention, not an arbitrary
   concept.)
 - **`resource`** — a repo-relative path that must **exist on disk** — is
   **required on every non-`Design`, non-`Reference` page**, binding each doc to
   the code it describes. `Design` and `Reference` pages are exempt (they document
-  an intent or a convention, not one source file).
+  an intent or a convention, not one source file), though a `resource` they do
+  set must still exist. In the package defaults, `Design` and `Subsystem` are
+  the exempt types.
 - **`title`** and **`description`** are required. `description` is one specific
   sentence — it is the primary text an agent matches a query against.
 

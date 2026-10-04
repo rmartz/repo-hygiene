@@ -21,8 +21,9 @@ repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <pat
 repo-hygiene --update-baseline [--check] [--config <path>]
 ```
 
-- **No check name** runs the registry's **default-on** set (the universally-safe
-  checks — the same set the Action's empty `checks` default resolves to).
+- **No check name** runs the registry's **default-on** set (every offline check,
+  strict by default — the same set the Action's empty `checks` default resolves
+  to).
 - **`--all`** runs every registered check.
 - **Naming one or more** checks runs just those, with independent per-check
   statuses (`repo-hygiene okf docs-links --check`).
@@ -41,8 +42,7 @@ signal.
 Per-repo settings live in `.repo-hygiene.yml` under `checks.<name>`. The framework
 understands two keys in any check's section: `severity`, which the runner applies
 uniformly to override every finding that check emits (downgrade a whole check to
-`warn` while a backlog is worked off, then flip it back — or set `error` to enforce
-a check that is only advisory by default); and `enabled`, which when set to `false`
+`warn` while a backlog is worked off, then flip it back); and `enabled`, which when set to `false`
 skips the check entirely — the per-repo opt-out for a default-on check a repo
 cannot satisfy. Every other key is the check's own; see each
 [check page](checks/index.md) for its vocabulary.
