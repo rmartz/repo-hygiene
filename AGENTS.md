@@ -43,6 +43,11 @@ file as off-limits just because bootstrap once seeded it.
   bumped by Dependabot; the CI checks
   (incl. PR-title lint + the `commit-convention` tripwire), labels, hardened
   `dependabot.yml`, and squash-merge setting are already in place and owned here.
+- **PR policy:** the `pr-policy` caller
+  ([pr-policy.yml](.github/workflows/pr-policy.yml)) runs the released
+  `rmartz/pr-policy-action` on this repo's PRs, pinned and bumped by Dependabot.
+  It passes `skip-uat: true`: the repo ships only a CLI, so there is nothing to
+  user-test.
 - `ai-ensure-labels` / `ai-verify-squash-setting` are still useful one-shot
   helpers to (re)seed the label roster or confirm the squash setting, but this
   repo owns its `.github/` config going forward.
