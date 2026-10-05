@@ -1,5 +1,6 @@
 export * from './discovery.js';
 export * from './types.js';
+export * from './outcome.js';
 export * from './config.js';
 export * from './registry.js';
 export * from './runner.js';

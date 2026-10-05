@@ -13,7 +13,9 @@
 // `github` (workflow-command annotations on stdout); when omitted it
 // auto-detects GitHub Actions. `--update-baseline` regenerates the file-caps
 // grandfather baseline instead of running checks. Exit 0 when clean or
-// warn-only, 1 on any error finding, 2 on a usage error or unknown check.
+// warn-only, 1 on any error finding, 2 on a usage error or unknown check, and 3
+// when the run is inconclusive (an external transient error, with no error
+// finding) — see src/outcome.ts.
 import { createRegistry, type Registry } from './registry.js';
 import { loadConfig } from './config.js';
 import { runHygiene } from './runner.js';
