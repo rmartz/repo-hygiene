@@ -42,12 +42,18 @@ export interface Finding {
   path?: string; // omit for a repo-level finding (about the tree as a whole)
   line?: number; // 1-based; omit when not line-anchored
   message: string;
-  severity: Severity; // 'warn' | 'error'
+  severity: FindingSeverity; // 'warn' | 'error' | 'inconclusive'
 }
 ```
 
 `error` findings drive `exit 1` (the enforced floor); a `warn`-only run exits `0`
-(the migration-ramp signal). Emit the severity that is _intrinsically_ right for
+(the migration-ramp signal). Reserve `error` for an issue in the change that
+needs fixing. When an **external transient error** (a rate limit, a timeout, an
+unreachable network) stops the check from reaching a verdict, report
+`inconclusive` instead. Emit a per-item `inconclusive` finding when the rest of
+the input can still be judged, or throw `InconclusiveError` (`src/outcome.ts`)
+to abandon the whole check. With no `error`, the run exits `3`, and the config
+`severity` override never touches an inconclusive finding. Emit the severity that is _intrinsically_ right for
 the finding; the repo tunes it via config (see step 4). `types.ts` depends only on
 discovery's file-set types and is kept type-only, so it sits at the bottom of the
 import graph — put shared types there, not runtime code.
@@ -130,31 +136,27 @@ Parse and validate that vocabulary in a dedicated `*-config.ts` module (see
 `file-caps-config.ts`), throwing a filename-prefixed error on a malformed shape so
 a bad config fails loudly rather than silently mis-behaving.
 
-**Default-safety is the gate for shipping.** Because a new check reaches every
-consumer on the next Dependabot bump with no chance for them to edit YAML first, a
-check must be safe to run with _no_ configuration. Two legal shapes:
+**An escape hatch is the gate for shipping.** A new default-on check reaches every
+consumer on the next Dependabot bump, before they can edit YAML. Defaults are
+strict (see [the distribution contract](distribution-contract.md)), so a
+default-on check may fail a consumer on arrival. What it must not do is fail one
+with no way out but a code change. Two legal shapes:
 
-- **Universally correct** — it does the right thing everywhere with sane built-in
-  defaults (e.g. `conflict-markers`, `action-pins`). Mark it `defaultOn: true` on
-  the check so it joins the default-on set.
-- **No-op until opted in** — with no config section it returns `[]` and never
-  fails. `file-caps` is the model: `fileCapsCheck.run` calls
-  `parseFileCapsConfig(ctx.settings)` and, when there are no `overrides`, returns
-  `[]` immediately. Leave `defaultOn` unset; a repo opts in by naming the check in
-  its caller and adding a config section.
+- **Default-on, at `error`.** It enforces a fleet convention with built-in
+  defaults (e.g. `conflict-markers`, `action-pins`, `package-pins`,
+  `file-caps`). Mark it `defaultOn: true`. Every finding must be relaxable from
+  `.repo-hygiene.yml`: `severity: warn` and `enabled: false` come from the
+  framework, and an opinionated option (a cap, a vocabulary, a rule toggle)
+  needs its own laxer setting. Ship it as a breaking release whose notes name
+  the escape hatch.
+- **Opt-in.** The check depends on something an arbitrary repo can't be assumed
+  to have, such as network access (`action-pin-tags`) or repo-specific config
+  like a blocklist. Leave `defaultOn` unset; a repo opts in by naming the check
+  in its caller and adding a config section.
 
-A check that _requires_ new config to avoid failing is disallowed — it would break
-every consumer's CI the moment it shipped. "Universally correct" is a high bar: it
-must not fail an arbitrary consumer on arrival. `package-pins` clears the
-config-free bar but not this one (a repo with `^3` ranges would break), so it stays
-opt-in — being config-free is necessary but not sufficient for `defaultOn`. See
-[the distribution contract](distribution-contract.md) for the full rationale.
-
-Two levers soften "default-on" for an opinionated check: set `defaultSeverity:
-'warn'` on the check so it surfaces findings everywhere but does not fail CI until
-a repo sets `severity: error`; and every default-on check is opt-out per repo via
-`enabled: false`. A check that is only _sometimes_ correct is a better fit for
-`defaultOn: true` + `defaultSeverity: 'warn'` than for staying opt-in.
+The built-in checks don't set `defaultSeverity: 'warn'`: a warning exits `0`, so
+a default `warn` passes CI silently. A check that can't enforce safely by default
+should stay opt-in rather than ship at `warn`.
 
 ## 5. Test it (`test/checks/*.test.ts`)
 

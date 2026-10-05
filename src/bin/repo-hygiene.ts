@@ -11,14 +11,16 @@
 // single check — silently vacuous CI (#67). Keeping the bin free of importable
 // exports means nothing needs to import it, so nothing needs guarding.
 import { main } from '../cli.js';
+import { EXIT_INCONCLUSIVE, EXIT_USAGE, InconclusiveError } from '../outcome.js';
 
 async function run(): Promise<void> {
   try {
     process.exit(await main());
   } catch (err: unknown) {
-    // Unknown check, malformed config, or an unexpected failure — usage-level.
     console.error(err instanceof Error ? err.message : String(err));
-    process.exit(2);
+    // An external transient error is inconclusive; anything else (unknown check,
+    // malformed config, an unexpected failure) is usage-level.
+    process.exit(err instanceof InconclusiveError ? EXIT_INCONCLUSIVE : EXIT_USAGE);
   }
 }
 

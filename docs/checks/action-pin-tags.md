@@ -35,9 +35,19 @@ not pinned to a SHA, and pins with no comment.
 
 ## When an upstream can't be listed
 
-A network or auth failure never fails the run. If an upstream can't be listed
-(offline, rate-limited, timed out after 20s, or private with no token), the check
-emits one `warn` for that upstream and skips its pins.
+An upstream that can't be listed never fails the run, since that says nothing
+about the change. The check emits one finding for that upstream and skips its
+pins:
+
+- **Definitively unreadable** (`git ls-remote` reports the repository not found,
+  an auth failure, or an HTTP 401/404, e.g. private with no token): a `warn`.
+- **Anything else** (rate-limited, timed out after 20s, offline, an HTTP 403 or
+  5xx, git unable to run): an `inconclusive` finding. With no `error` elsewhere,
+  the run [exits `3`](../overview.md), and re-running it is the fix. A 403 counts
+  as transient because GitHub also uses it for rate limits.
+
+Upstreams that list cleanly are still verified, so a real mismatch on one pin
+still fails the run while another upstream is rate-limited.
 
 For **private upstreams**, provide `GITHUB_TOKEN` (or `GH_TOKEN`) in the
 environment. The token is passed to git as an HTTP header through `GIT_CONFIG_*`

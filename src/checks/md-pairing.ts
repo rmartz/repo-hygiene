@@ -9,9 +9,10 @@ import type { Check, CheckConfig, Finding } from '../types.js';
  * files means every tool that reads only one of the two names sees the same
  * content regardless of which it opens.
  *
- * Optionally (config-gated by `wrapper`), it also enforces the **bare-wrapper**
- * convention: directives live in `AGENTS.md`, and each `CLAUDE.md` is a bare
- * wrapper whose only meaningful line is the import line (e.g. `@AGENTS.md`).
+ * By default it also enforces the **bare-wrapper** convention: directives live
+ * in `AGENTS.md`, and each `CLAUDE.md` is a bare wrapper whose only meaningful
+ * line is the import line (`@AGENTS.md`, or a custom `wrapper` string;
+ * `wrapper: false` turns the rule off).
  *
  * Pairing is a whole-tree structural invariant (seeing only a changed subset
  * can't tell whether a pair is complete), so the check reads the full tracked
@@ -97,11 +98,13 @@ export function evaluatePairing(modes: Map<string, string>, opts: PairingOptions
   return findings;
 }
 
-/** Resolve the `wrapper` config: a string import line, `true` → `@AGENTS.md`, else off. */
-function resolveWrapper(settings: CheckConfig): string | undefined {
+const DEFAULT_WRAPPER = '@AGENTS.md';
+
+/** Resolve the `wrapper` config: a string import line, unset/`true` → `@AGENTS.md`, `false` → off. */
+export function resolveWrapper(settings: CheckConfig): string | undefined {
   const wrapper = settings.wrapper;
-  if (wrapper === undefined || wrapper === false) return undefined;
-  if (wrapper === true) return '@AGENTS.md';
+  if (wrapper === false) return undefined;
+  if (wrapper === undefined || wrapper === true) return DEFAULT_WRAPPER;
   if (typeof wrapper === 'string') return wrapper;
   throw new Error(`${NAME}: "wrapper" must be a string or boolean`);
 }
@@ -109,12 +112,10 @@ function resolveWrapper(settings: CheckConfig): string | undefined {
 export const mdPairingCheck: Check = {
   name: NAME,
   description:
-    'CLAUDE.md / AGENTS.md must be paired regular files in every directory that has one; optionally each CLAUDE.md must be a bare @AGENTS.md wrapper.',
-  // Default-on but warn by default: many repos carry a CLAUDE.md without an
-  // AGENTS.md, so a hard failure on arrival would be wrong; the warning nudges
-  // toward pairing and a repo enforces it with `severity: error`.
+    'CLAUDE.md / AGENTS.md must be paired regular files in every directory that has one, and each CLAUDE.md a bare @AGENTS.md wrapper.',
+  // Default-on at error, wrapper rule included: a repo with legacy directive
+  // files relaxes it with `severity: warn`, `wrapper: false`, or `enabled: false`.
   defaultOn: true,
-  defaultSeverity: 'warn',
   async run(ctx) {
     const wrapper = resolveWrapper(ctx.settings);
     const modes = await trackedFileModes({ cwd: ctx.cwd });

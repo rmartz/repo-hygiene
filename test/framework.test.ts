@@ -7,6 +7,7 @@ vi.mock('../src/lib/bounded-subprocess.js', () => ({ boundedRun }));
 
 const { createRegistry, builtinChecks } = await import('../src/registry.js');
 const { runHygiene } = await import('../src/runner.js');
+const { InconclusiveError } = await import('../src/outcome.js');
 const { formatFinding, formatFindings, formatFindingGithub, formatFindingsGithub, resolveFormat } =
   await import('../src/reporter.js');
 const { conflictMarkersCheck } = await import('../src/checks/conflict-markers.js');
@@ -21,6 +22,11 @@ const fakeCheck = (name: string, findings: Finding[]): Check => ({
 
 const err = (check: string): Finding => ({ check, message: 'boom', severity: 'error' });
 const warn = (check: string): Finding => ({ check, message: 'meh', severity: 'warn' });
+const inconclusive = (check: string): Finding => ({
+  check,
+  message: 'rate limited',
+  severity: 'inconclusive',
+});
 
 // runHygiene resolves a file set via git before running checks; the fakes ignore
 // it, so an empty tracked-file list keeps these hermetic.
@@ -69,24 +75,28 @@ describe('registry defaultNames', () => {
     expect(registry.defaultNames()).toEqual(['b', 'c']);
   });
 
-  it('the built-in default-on set is every check except the opt-in package-pins', () => {
+  it('the built-in default-on set is every check except the network-dependent action-pin-tags', () => {
     expect(createRegistry().defaultNames()).toEqual([
       'conflict-markers',
       'okf',
       'okf-index',
       'docs-links',
       'action-pins',
+      'package-pins',
       'md-pairing',
       'file-caps',
     ]);
   });
 
-  it('package-pins is the only opt-in check', () => {
-    const defaults = createRegistry().defaultNames();
-    expect(defaults).not.toContain('package-pins');
-    for (const name of ['docs-links', 'md-pairing', 'okf', 'okf-index', 'file-caps']) {
-      expect(defaults).toContain(name);
-    }
+  it('action-pin-tags is the only opt-in check', () => {
+    const registry = createRegistry();
+    expect(registry.names().filter((n) => !registry.defaultNames().includes(n))).toEqual([
+      'action-pin-tags',
+    ]);
+  });
+
+  it('no built-in check softens its findings to warn by default', () => {
+    for (const check of createRegistry().all()) expect(check.defaultSeverity).toBeUndefined();
   });
 });
 
@@ -98,6 +108,62 @@ describe('runHygiene', () => {
     const result = await runHygiene(registry, { mode: '--check', config });
     expect(result.findings.map((f) => f.check)).toEqual(['a', 'b']);
     expect(result.exitCode).toBe(1);
+  });
+
+  it('exits 3 when a finding is inconclusive and none is an error', async () => {
+    const registry = createRegistry([
+      fakeCheck('a', [warn('a')]),
+      fakeCheck('b', [inconclusive('b')]),
+    ]);
+    expect((await runHygiene(registry, { mode: '--check', config })).exitCode).toBe(3);
+  });
+
+  it('exits 1 when an error and an inconclusive finding coexist (a detected issue wins)', async () => {
+    const registry = createRegistry([
+      fakeCheck('a', [inconclusive('a')]),
+      fakeCheck('b', [err('b')]),
+    ]);
+    expect((await runHygiene(registry, { mode: '--check', config })).exitCode).toBe(1);
+  });
+
+  it('never applies a severity override to an inconclusive finding', async () => {
+    const registry = createRegistry([fakeCheck('a', [inconclusive('a'), err('a')])]);
+    const result = await runHygiene(registry, {
+      mode: '--check',
+      config: { checks: { a: { severity: 'warn' } } },
+    });
+    expect(result.findings.map((f) => f.severity)).toEqual(['inconclusive', 'warn']);
+    expect(result.exitCode).toBe(3);
+  });
+
+  it('records a thrown InconclusiveError as a repo-level finding and runs the rest', async () => {
+    const throwing: Check = {
+      name: 'a',
+      description: 'a',
+      run: async () => {
+        throw new InconclusiveError('upstream timed out');
+      },
+    };
+    const registry = createRegistry([throwing, fakeCheck('b', [warn('b')])]);
+    const result = await runHygiene(registry, { mode: '--check', config });
+    expect(result.findings).toEqual([
+      { check: 'a', message: 'upstream timed out', severity: 'inconclusive' },
+      warn('b'),
+    ]);
+    expect(result.exitCode).toBe(3);
+  });
+
+  it('still propagates an ordinary error thrown by a check', async () => {
+    const throwing: Check = {
+      name: 'a',
+      description: 'a',
+      run: async () => {
+        throw new Error('bad config');
+      },
+    };
+    await expect(
+      runHygiene(createRegistry([throwing]), { mode: '--check', config }),
+    ).rejects.toThrow('bad config');
   });
 
   it('exits 0 when only warnings are found', async () => {
@@ -270,6 +336,16 @@ describe('github reporter', () => {
         severity: 'warn',
       }),
     ).toBe('::warning file=docs/x.md,line=3,title=okf::missing title');
+  });
+
+  it('renders an inconclusive finding as a warning titled (inconclusive)', () => {
+    expect(
+      formatFindingGithub({
+        check: 'action-pin-tags',
+        message: 'timed out',
+        severity: 'inconclusive',
+      }),
+    ).toBe('::warning title=action-pin-tags (inconclusive)::timed out');
   });
 
   it('omits line for a file-level finding and file for a repo-level finding', () => {

@@ -1,14 +1,14 @@
 ---
 type: Library
 title: The file-caps check
-description: Enforces per-glob line and byte size caps, with strict, ratchet (base-branch ceiling), grandfather (base-branch exemption), or legacy baseline (committed file) handling of existing over-cap files; on by default with two-tier (warn + error) shared caps.
+description: Enforces per-glob line and byte size caps, with strict, ratchet (base-branch ceiling), grandfather (base-branch exemption), or legacy baseline (committed file) handling of existing over-cap files; on by default with error-only shared caps.
 resource: src/checks/file-caps.ts
 tags: [hygiene, ci, checks, size]
 ---
 
 # `file-caps`
 
-**Default:** on (two-tier defaults) · **Config:** `overrides`, `mode`, `base` (+ `.repo-hygiene-baseline.json` in baseline mode) · **Opt out:** `enabled: false`
+**Default:** on (error-only defaults) · **Config:** `overrides`, `mode`, `base` (+ `.repo-hygiene-baseline.json` in baseline mode) · **Opt out:** `enabled: false`
 
 Per-glob file size caps with a migration ramp. Each file takes the **first
 matching** `overrides` entry (most-specific first, first-match-wins — no merge) and
@@ -45,38 +45,50 @@ checks:
 
 ## Shared defaults
 
-`file-caps` is **default-on** and ships **two-tier shared defaults** (a `warn` nudge
-below a hard `error` cap) that apply when a repo configures nothing. Unlike the
-other default-on checks these **hard-gate on arrival** — see
-[the on-arrival exception](../distribution-contract.md) for why. They are ordered
-narrowest-first (first-match-wins):
+`file-caps` is **default-on** and ships **error-only shared defaults** that apply
+when a repo configures nothing. They're ordered narrowest-first
+(first-match-wins):
 
-| Applies to              | Glob                                                                    | `lines` warn / error | `bytes` warn / error |
-| ----------------------- | ----------------------------------------------------------------------- | -------------------- | -------------------- |
-| Agent directive files   | `**/{AGENTS,CLAUDE}.md`, `**/.cursorrules`, `**/.cursor/rules/**/*.mdc` | 200 / 300            | 32 KB / 48 KB        |
-| Test files (JS/TS)      | `**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}`                      | 800 / 1200           | 96 KB / 128 KB       |
-| Test files (Go/Py/Ruby) | `**/*_{test,spec}.{go,py,rb}`, `**/test_*.py`                           | 800 / 1200           | 96 KB / 128 KB       |
-| Code under a test dir   | `**/{__tests__,test,tests,spec,specs}/**/*.{…code…}`                    | 800 / 1200           | 96 KB / 128 KB       |
-| Production code         | `**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs}` | 400 / 600            | 48 KB / 64 KB        |
-| Markdown / docs         | `**/*.md`                                                               | 700 / 1000           | 96 KB / 128 KB       |
+| Applies to              | Glob                                                                                                                                                                                       | `lines` error | `bytes` error |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ------------- |
+| Generated files         | lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `go.sum`, `Cargo.lock`, `poetry.lock`, …), `**/CHANGELOG.md`, `**/__snapshots__/**`, `**/*.{snap,map}`, `**/*.min.{js,css}` | uncapped      | uncapped      |
+| Agent directive files   | `**/{AGENTS,CLAUDE}.md`, `**/.cursorrules`, `**/.cursor/rules/**/*.mdc`                                                                                                                    | 300           | 48 KB         |
+| Test files (JS/TS)      | `**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}`                                                                                                                                         | 600           | 128 KB        |
+| Test files (Go/Py/Ruby) | `**/*_{test,spec}.{go,py,rb}`, `**/test_*.py`                                                                                                                                              | 600           | 128 KB        |
+| Code under a test dir   | `**/{__tests__,test,tests,spec,specs}/**/*.{…code…}`                                                                                                                                       | 600           | 128 KB        |
+| Production code         | `**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,py,rb,go,rs,java,kt,swift,php,cs}`                                                                                                                    | 400           | 64 KB         |
+| Markdown / docs         | `**/*.md`                                                                                                                                                                                  | 400           | 96 KB         |
+| Everything else         | `**/*` (`.sh`, `.yml`, `.json`, …)                                                                                                                                                         | 400           | uncapped      |
 
-Two rows are deliberate departures from the generic code/Markdown caps:
-**agent directive files** (`AGENTS.md` / `CLAUDE.md`, plus Cursor's `.cursorrules`
-and `.cursor/rules/*.mdc`) get the _tightest_ cap because a directive file only
-earns its keep if the model actually reads it — Claude and Cursor guidance both
-favor short, focused instruction files; and **test files** get the _widest_ cap
-because table-driven cases, fixtures, and exhaustive assertions legitimately run
-longer than production code. The two-tier numbers and the warn:error ratio follow
-the scheme documented in
-[hidden-role-game](https://github.com/rmartz/hidden-role-game)'s `AGENTS.md`,
-widened for the arbitrary consumer repo.
+**Error-only, with no `warn` tier.** A warning exits `0`, so a soft tier below
+each cap passes CI silently and only accumulates. The defaults take the same
+stance as `eslint --max-warnings 0`. A repo that wants an advisory nudge below a
+cap adds a `warn` in its own override.
+
+The values match what `rmartz/firebase-nextjs-template` and
+`rmartz/hidden-role-game` enforce, and line up with an eslint `max-lines` of 400
+for code and 600 for specs. Some rows depart from the generic cap on purpose:
+
+- **Agent directive files** get a tighter cap. A directive file only earns its
+  keep if the model reads it in full.
+- **Test files** get a wider cap. Table-driven cases, fixtures, and exhaustive
+  assertions run longer than production code.
+- **Generated files** are uncapped. Tooling sets their size, not authors. An
+  override entry with no `lines` or `bytes` uncaps its glob the same way.
+- **The catch-all** caps lines only, so binary assets aren't byte-capped. A
+  binary file (one containing a NUL byte) also counts as 0 lines, so only an
+  explicit `bytes` cap applies to it.
+
+Repo-specific vendored or append-only paths, such as shadcn's
+`src/components/ui/**` or a metrics ledger, aren't in the defaults. List them in
+the repo's own `overrides`.
 
 A repo's own `overrides` are consulted **first** (they match ahead of the defaults,
 per first-match-wins), so you tighten a glob, set a **laxer** `error` cap, or add
-tiers by listing it. Because the defaults now error, a consumer that trips them on
-the next bump rectifies with a one-line override, `mode: ratchet` or
-`mode: grandfather` (which downgrade files already over cap on the base branch to
-`warn`), or `enabled: false` to turn the check off entirely.
+tiers by listing it. A consumer that trips the defaults on a bump fixes it with a
+one-line override, with `mode: ratchet` or `mode: grandfather` (which downgrade
+files already over cap on the base branch to `warn`, so no existing file needs a
+commit), or with `enabled: false`.
 
 ## Modes
 
