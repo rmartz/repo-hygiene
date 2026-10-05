@@ -1,11 +1,14 @@
 import { resolveFileSet, type Mode } from './discovery.js';
 import type { Finding, RepoHygieneConfig } from './types.js';
 import type { Registry } from './registry.js';
+import { EXIT_CLEAN, EXIT_FAILURE, EXIT_INCONCLUSIVE, InconclusiveError } from './outcome.js';
 
 /**
  * The engine: resolve the file set once, run the selected checks over it, apply
  * each check's config `severity` override (the migration ramp), and derive the
- * exit code. `error` findings drive `exit 1`; a `warn`-only run exits `0`.
+ * exit code. `error` findings drive `exit 1`; otherwise an `inconclusive` finding
+ * (an external transient error) drives `exit 3`; a `warn`-only run exits `0`. A
+ * detected issue outranks an inconclusive one: the change still needs fixing.
  */
 
 export interface RunRequest {
@@ -21,7 +24,7 @@ export interface RunRequest {
 export interface RunResult {
   /** Every finding, with its effective (post-override) severity. */
   findings: Finding[];
-  /** `1` if any finding is an `error`, else `0`. */
+  /** `1` if any finding is an `error`, else `3` if any is `inconclusive`, else `0`. */
   exitCode: number;
 }
 
@@ -47,15 +50,28 @@ export async function runHygiene(registry: Registry, req: RunRequest): Promise<R
   for (const check of checks) {
     const settings = req.config.checks[check.name] ?? {};
     if (settings.enabled === false) continue; // per-repo opt-out
-    const raw = await check.run({ mode: req.mode, files, cwd: req.cwd, settings, env });
-    // A repo's explicit `severity` wins; otherwise the check's `defaultSeverity`
-    // (e.g. `warn` for an opinionated default-on check); otherwise the intrinsic
-    // severity each finding carries.
+    let raw: Finding[];
+    try {
+      raw = await check.run({ mode: req.mode, files, cwd: req.cwd, settings, env });
+    } catch (err) {
+      if (!(err instanceof InconclusiveError)) throw err;
+      findings.push({ check: check.name, message: err.message, severity: 'inconclusive' });
+      continue;
+    }
+    // A repo's explicit `severity` wins; otherwise the check's `defaultSeverity`;
+    // otherwise the intrinsic severity each finding carries. An inconclusive
+    // finding is never overridden: it is not a judgement of the change.
     const override = settings.severity ?? check.defaultSeverity;
     for (const finding of raw) {
-      findings.push(override ? { ...finding, severity: override } : finding);
+      const keep = !override || finding.severity === 'inconclusive';
+      findings.push(keep ? finding : { ...finding, severity: override });
     }
   }
-  const exitCode = findings.some((f) => f.severity === 'error') ? 1 : 0;
-  return { findings, exitCode };
+  return { findings, exitCode: exitCodeOf(findings) };
+}
+
+function exitCodeOf(findings: Finding[]): number {
+  if (findings.some((f) => f.severity === 'error')) return EXIT_FAILURE;
+  if (findings.some((f) => f.severity === 'inconclusive')) return EXIT_INCONCLUSIVE;
+  return EXIT_CLEAN;
 }
