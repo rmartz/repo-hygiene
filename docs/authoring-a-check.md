@@ -42,12 +42,18 @@ export interface Finding {
   path?: string; // omit for a repo-level finding (about the tree as a whole)
   line?: number; // 1-based; omit when not line-anchored
   message: string;
-  severity: Severity; // 'warn' | 'error'
+  severity: FindingSeverity; // 'warn' | 'error' | 'inconclusive'
 }
 ```
 
 `error` findings drive `exit 1` (the enforced floor); a `warn`-only run exits `0`
-(the migration-ramp signal). Emit the severity that is _intrinsically_ right for
+(the migration-ramp signal). Reserve `error` for an issue in the change that
+needs fixing. When an **external transient error** (a rate limit, a timeout, an
+unreachable network) stops the check from reaching a verdict, report
+`inconclusive` instead. Emit a per-item `inconclusive` finding when the rest of
+the input can still be judged, or throw `InconclusiveError` (`src/outcome.ts`)
+to abandon the whole check. With no `error`, the run exits `3`, and the config
+`severity` override never touches an inconclusive finding. Emit the severity that is _intrinsically_ right for
 the finding; the repo tunes it via config (see step 4). `types.ts` depends only on
 discovery's file-set types and is kept type-only, so it sits at the bottom of the
 import graph — put shared types there, not runtime code.

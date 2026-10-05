@@ -12,8 +12,10 @@ import { parseUsesLine } from './action-pins.js';
  *
  * It is deliberately a separate, never-default-on check so `action-pins` stays
  * offline and cheap: only a repo that names `action-pin-tags` pays the network
- * cost. An upstream that cannot be listed (offline, rate-limited, private without
- * a token, timeout) yields a `warn` and is skipped — never a failure.
+ * cost. An upstream that cannot be listed is never a failure, since it says
+ * nothing about the change: a definitive "not found" or auth refusal (deleted,
+ * renamed, or private without a token) yields a `warn` and is skipped, and any
+ * other failure (rate limit, timeout, network error) makes the run inconclusive.
  */
 
 const NAME = 'action-pin-tags';
@@ -85,21 +87,47 @@ function gitEnv(env: Record<string, string | undefined>): NodeJS.ProcessEnv {
   return out;
 }
 
-/** List an upstream's tags, or the reason it could not be listed. */
+/**
+ * `git ls-remote` stderr that definitively means the upstream can't be read with
+ * the credentials at hand: it doesn't exist, or it is private and the token (if
+ * any) can't see it. Anything else is treated as transient.
+ */
+// A 403 is deliberately absent: GitHub also answers a rate-limited request with
+// 403, so it is treated as transient.
+const UNREADABLE =
+  /repository not found|authentication failed|could not read username|terminal prompts disabled|returned error: 40[14]\b/i;
+
+/** Whether `git ls-remote` stderr names a definitive not-found / auth refusal. */
+export function isUnreadableUpstream(stderr: string): boolean {
+  return UNREADABLE.test(stderr);
+}
+
+/** Why an upstream's tags could not be listed, and whether that is transient. */
+interface ListFailure {
+  reason: string;
+  transient: boolean;
+}
+
+/** List an upstream's tags, or why they could not be listed. */
 async function listTags(
   repo: string,
   env: Record<string, string | undefined>,
-): Promise<Map<string, string> | string> {
+): Promise<Map<string, string> | ListFailure> {
   try {
     const res = await boundedRun('git', ['ls-remote', '--tags', `https://github.com/${repo}.git`], {
       timeoutMs: LS_REMOTE_TIMEOUT_MS,
       env: gitEnv(env),
     });
-    if (res.timedOut) return `timed out after ${LS_REMOTE_TIMEOUT_MS / 1000}s`;
-    if (res.code !== 0) return res.stderr.trim().split('\n')[0] || `git exited ${res.code}`;
+    if (res.timedOut) {
+      return { reason: `timed out after ${LS_REMOTE_TIMEOUT_MS / 1000}s`, transient: true };
+    }
+    if (res.code !== 0) {
+      const reason = res.stderr.trim().split('\n')[0] || `git exited ${res.code}`;
+      return { reason, transient: !isUnreadableUpstream(res.stderr) };
+    }
     return parseLsRemoteTags(res.stdout);
   } catch (err) {
-    return err instanceof Error ? err.message : String(err);
+    return { reason: err instanceof Error ? err.message : String(err), transient: true };
   }
 }
 
@@ -139,13 +167,15 @@ export const actionPinTagsCheck: Check = {
     for (const pin of pins) {
       const tags = await tagsByRepo.get(pin.repo)!;
       const at = { check: NAME, path: pin.path, line: pin.line };
-      if (typeof tags === 'string') {
+      if (!(tags instanceof Map)) {
         if (warned.has(pin.repo)) continue;
         warned.add(pin.repo);
         findings.push({
           ...at,
-          message: `could not list tags for ${pin.repo} (${tags}); skipped its pins`,
-          severity: 'warn',
+          message: tags.transient
+            ? `could not list tags for ${pin.repo} (${tags.reason}); its pins are unverified — re-run`
+            : `could not list tags for ${pin.repo} (${tags.reason}); skipped its pins`,
+          severity: tags.transient ? 'inconclusive' : 'warn',
         });
         continue;
       }

@@ -1,4 +1,4 @@
-import type { Finding, Severity } from './types.js';
+import type { Finding, FindingSeverity } from './types.js';
 
 /**
  * The reporters. The default is plain text — `severity [check] path:line:
@@ -50,18 +50,26 @@ function escapeProperty(value: string): string {
   return escapeData(value).replace(/:/g, '%3A').replace(/,/g, '%2C');
 }
 
-const COMMAND_OF: Record<Severity, string> = { error: 'error', warn: 'warning' };
+const COMMAND_OF: Record<FindingSeverity, string> = {
+  error: 'error',
+  warn: 'warning',
+  inconclusive: 'warning',
+};
 
 /**
  * Render one finding as a GitHub workflow-command annotation. `error` maps to
- * `::error`, `warn` to `::warning`; `file`/`line` are included when present so
- * the annotation lands on the PR diff, and the check name rides in `title`.
+ * `::error`, `warn` and `inconclusive` to `::warning` (an inconclusive finding is
+ * not a defect in the change); `file`/`line` are included when present so the
+ * annotation lands on the PR diff, and the check name rides in `title`
+ * (suffixed ` (inconclusive)` for an inconclusive finding).
  */
 export function formatFindingGithub(finding: Finding): string {
   const props: string[] = [];
   if (finding.path) props.push(`file=${escapeProperty(finding.path)}`);
   if (finding.line !== undefined) props.push(`line=${finding.line}`);
-  props.push(`title=${escapeProperty(finding.check)}`);
+  const title =
+    finding.severity === 'inconclusive' ? `${finding.check} (inconclusive)` : finding.check;
+  props.push(`title=${escapeProperty(title)}`);
   return `::${COMMAND_OF[finding.severity]} ${props.join(',')}::${escapeData(finding.message)}`;
 }
 

@@ -33,9 +33,19 @@ repo-hygiene --update-baseline [--check] [--config <path>]
 - **`--update-baseline`** regenerates the committed [`file-caps`](checks/file-caps.md)
   baseline (legacy `mode: baseline`) instead of running checks.
 
-**Exit codes:** `0` when clean or warn-only, `1` on any `error` finding, `2` on a
-usage error or unknown check. A `warn`-only run exits `0` — the migration-ramp
-signal.
+**Exit codes:**
+
+| Code | Meaning                                                                                                                                                                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Clean, or warn-only (the migration-ramp signal).                                                                                                                                            |
+| `1`  | **Failure**: an `error` finding, meaning the run detected an issue in the change that needs fixing.                                                                                         |
+| `2`  | Usage error: an unknown check or a malformed config.                                                                                                                                        |
+| `3`  | **Inconclusive**: no `error`, but a check couldn't reach a verdict because of an external transient error (rate limit, timeout, network). Re-run it; there is nothing to fix in the change. |
+
+A failure outranks an inconclusive result: if one check finds an `error` while
+another is inconclusive, the run exits `1`. Under GitHub Actions,
+[`rmartz/repo-hygiene-action`](https://github.com/rmartz/repo-hygiene-action)
+reports an exit-`3` run as cancelled rather than failed.
 
 ## Configuration
 
