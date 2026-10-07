@@ -1,4 +1,13 @@
 import type { Check, Finding } from '../types.js';
+import {
+  EXACT_TAG,
+  isTagPinOwner,
+  lookupRelease,
+  releaseFinding,
+  tagPinOwners,
+  tagPinTarget,
+  type ReleaseLookup,
+} from './action-pins-releases.js';
 
 /**
  * GitHub Actions SHA-pin conformance. Every external action referenced under
@@ -7,6 +16,12 @@ import type { Check, Finding } from '../types.js';
  * tag can be force-moved by a compromised upstream to run code with our token,
  * while a commit SHA is immutable. Local (`./…`) and self-repository (`$/…`) refs
  * move with the repo commit and are exempt. A security-flavored check.
+ *
+ * One exception (#76): an allowlisted first-party owner's ref may be pinned to an
+ * exact `vX.Y.Z` tag instead, but only when that release is immutable. The shape
+ * rule is pure (`checkActionRef` with `tagPinOwners`); the immutability lookup is
+ * the check's one network call, made only for such tag pins (see
+ * `action-pins-releases.ts`).
  *
  * `parseUsesLine` / `checkActionRef` / `scanYaml` stay exported (and unit-tested)
  * so PR Shepherd and other callers can reuse the pure logic.
@@ -42,8 +57,22 @@ export function parseUsesLine(line: string): { uses: string; comment?: string } 
   return uses ? { uses, comment } : null;
 }
 
+/** Options for {@link checkActionRef}. */
+export interface ActionRefOptions {
+  /**
+   * Owners whose refs may be pinned to an exact `vX.Y.Z` tag. A ref this accepts
+   * only conforms in *shape*: the caller must still confirm the release is
+   * immutable (`lookupRelease`), as `actionPinsCheck` does.
+   */
+  tagPinOwners?: readonly string[];
+}
+
 /** The reason a `uses:` ref violates the pin policy, or null if it conforms. */
-export function checkActionRef(uses: string, comment?: string): string | null {
+export function checkActionRef(
+  uses: string,
+  comment?: string,
+  { tagPinOwners: owners = [] }: ActionRefOptions = {},
+): string | null {
   // Local composite/action path — moves with the commit, not tag-attackable.
   if (uses.startsWith('./') || uses.startsWith('../')) return null;
   // Self-repository ref (`$/<path>`) — GitHub resolves it to THIS repository at the
@@ -67,6 +96,11 @@ export function checkActionRef(uses: string, comment?: string): string | null {
     return `${uses} — unpinned (no @ref); pin to a full 40-char commit SHA`;
   }
   const ref = uses.slice(at + 1);
+  if (!SHA.test(ref) && isTagPinOwner(uses, owners)) {
+    return EXACT_TAG.test(ref)
+      ? null
+      : `${uses} — a first-party tag pin must be an exact vX.Y.Z tag on an immutable release (a floating tag or branch is mutable); otherwise pin to a full 40-char commit SHA`;
+  }
   if (!SHA.test(ref)) {
     return `${uses} — not SHA-pinned; pin to a full 40-char commit SHA (a tag is mutable)`;
   }
@@ -83,12 +117,12 @@ export interface PinError {
 }
 
 /** Scan one YAML file's text for non-conforming `uses:` references. */
-export function scanYaml(file: string, text: string): PinError[] {
+export function scanYaml(file: string, text: string, opts: ActionRefOptions = {}): PinError[] {
   const errors: PinError[] = [];
   text.split('\n').forEach((line, i) => {
     const parsed = parseUsesLine(line);
     if (!parsed) return;
-    const reason = checkActionRef(parsed.uses, parsed.comment);
+    const reason = checkActionRef(parsed.uses, parsed.comment, opts);
     if (reason) errors.push({ file, line: i + 1, reason });
   });
   return errors;
@@ -99,20 +133,47 @@ const isGithubYaml = (path: string): boolean =>
 
 export const actionPinsCheck: Check = {
   name: NAME,
-  description: 'GitHub Actions pinned to a full commit SHA with a full-semver comment.',
+  description:
+    'GitHub Actions pinned to a full commit SHA with a full-semver comment (or, first-party, an immutable release tag).',
   // Default-on: SHA-pinning is the security floor the hygiene suite exists to
-  // spread, needs no config, and only inspects `.github/**` workflow YAML — so it
-  // is safe to run on any consumer. (`package-pins`, its npm analog, is *not*
+  // spread, works with no config (`tagPinOwners` is optional), and only inspects
+  // `.github/**` workflow YAML — so it is safe to run on any consumer. (`package-pins`, its npm analog, is *not*
   // default-on: promoting it would break consumers using abbreviated ranges.)
+  // The immutable-release lookup is the one network call, and it is made only for
+  // an exact-tag pin by an allowlisted owner — a repo that SHA-pins everything
+  // stays fully offline.
   defaultOn: true,
   async run(ctx) {
+    const owners = tagPinOwners(ctx.settings, ctx.env);
     const findings: Finding[] = [];
+    const tagPins: {
+      path: string;
+      line: number;
+      uses: string;
+      target: { repo: string; tag: string };
+      lookup: Promise<ReleaseLookup>;
+    }[] = [];
+    const lookups = new Map<string, Promise<ReleaseLookup>>();
     for (const path of ctx.files.paths) {
       if (!isGithubYaml(path)) continue;
       const text = await ctx.files.read(path);
-      for (const { file, line, reason } of scanYaml(path, text)) {
+      for (const { file, line, reason } of scanYaml(path, text, { tagPinOwners: owners })) {
         findings.push({ check: NAME, path: file, line, message: reason, severity: 'error' });
       }
+      text.split('\n').forEach((lineText, i) => {
+        const uses = parseUsesLine(lineText)?.uses;
+        const target = uses && tagPinTarget(uses, owners);
+        if (!target) return;
+        // Start each distinct release's lookup up front so they run concurrently.
+        const key = `${target.repo}@${target.tag}`;
+        const lookup = lookups.get(key) ?? lookupRelease(target.repo, target.tag, ctx.env);
+        lookups.set(key, lookup);
+        tagPins.push({ path, line: i + 1, uses, target, lookup });
+      });
+    }
+    for (const pin of tagPins) {
+      const result = releaseFinding(pin.uses, pin.target, await pin.lookup);
+      if (result) findings.push({ check: NAME, path: pin.path, line: pin.line, ...result });
     }
     return findings;
   },
