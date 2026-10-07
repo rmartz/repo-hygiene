@@ -164,6 +164,38 @@ describe('validateDoc — resources on exempt types', () => {
   });
 });
 
+describe('validateDoc — URL resources', () => {
+  const valid = { type: 'Library', title: 'x', description: 'y' };
+
+  it.each([
+    'https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md',
+    'http://example.com/spec',
+  ])('passes %s without probing the filesystem', (resource) => {
+    const probed: string[] = [];
+    const findings = validateDoc('docs/a.md', page({ ...valid, resource }), DEFAULTS, (p) => {
+      probed.push(p);
+      return false;
+    });
+    expect(findings).toEqual([]);
+    expect(probed).toEqual([]);
+  });
+
+  it('still checks a local path resource for existence', () => {
+    const probed: string[] = [];
+    const findings = validateDoc(
+      'docs/a.md',
+      page({ ...valid, resource: 'src/gone.ts' }),
+      DEFAULTS,
+      (p) => {
+        probed.push(p);
+        return false;
+      },
+    );
+    expect(probed).toEqual(['src/gone.ts']);
+    expect(findings.map((f) => f.message)).toEqual(['resource not found: src/gone.ts']);
+  });
+});
+
 describe('okfCheck.run', () => {
   const filesOf = (entries: Record<string, string>): FileSet => ({
     paths: Object.keys(entries),
