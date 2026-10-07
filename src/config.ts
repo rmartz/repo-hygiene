@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import type { CheckConfig, RepoHygieneConfig, Severity } from './types.js';
+import { isPlainObject } from './lib/is-plain-object.js';
 
 /**
  * Loader for the committed `.repo-hygiene.yml`. It validates the envelope — a
@@ -17,9 +18,6 @@ const SEVERITIES: readonly Severity[] = ['warn', 'error'];
 
 const isSeverity = (value: unknown): value is Severity =>
   typeof value === 'string' && (SEVERITIES as readonly string[]).includes(value);
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The default config when no `.repo-hygiene.yml` is present. */
 export const emptyConfig = (): RepoHygieneConfig => ({ checks: {} });
