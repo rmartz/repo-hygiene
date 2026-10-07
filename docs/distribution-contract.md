@@ -76,3 +76,12 @@ a transient network error makes the run inconclusive (exit `3`), and an
 upstream that is definitively unreadable is a `warn`-and-skip. Keep the network check separate from
 the offline check it extends, rather than adding a network flag to that check,
 so the default-on check stays offline and honest about its scope.
+
+One narrow exception: [`action-pins`](checks/action-pins.md) looks up a release
+through the GitHub API, but only for an exact-tag pin by an allowlisted
+first-party owner. Without the lookup, that ref would fail anyway. The lookup can
+only turn such a ref from failing to passing, after it confirms the release is
+immutable, so it never adds a failure to an unconfigured consumer. A repo that
+SHA-pins everything never touches the network. The verification lives in
+`action-pins` itself, not in an opt-in companion, because accepting the tag
+offline would let a mutable release through the default suite.

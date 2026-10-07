@@ -59,8 +59,8 @@ argv. Public upstreams need no token.
 The default suite is tree-only: `git ls-files` plus file reads, with no history
 and no network. That keeps it cheap and lets it run on any consumer with
 `contents: read`. This check makes one network call per upstream, so it is a
-separate check that is never default-on, and `action-pins` stays offline and
-honest about its scope. Name it in your `checks` input to opt in (see the
+separate check that is never default-on, and `action-pins` stays offline for SHA
+pins and honest about its scope. Name it in your `checks` input to opt in (see the
 [distribution contract](../distribution-contract.md)).
 
 ## A note on this repo's tags
