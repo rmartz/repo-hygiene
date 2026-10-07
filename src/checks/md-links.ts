@@ -57,6 +57,15 @@ export interface LinkTarget {
 }
 
 /**
+ * Whether a link/resource value names an external URL — anything with a URI
+ * scheme (`https:`, `http:`, `mailto:`) — rather than an intra-repo path. Such a
+ * value is never resolved on disk (no network fetching — hermetic by construction).
+ */
+export function hasUrlScheme(value: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:/i.test(value);
+}
+
+/**
  * Parse an href into its intra-repo file `path` and `#anchor`, or `null` when the
  * href is not an intra-repo target worth resolving on disk — an external scheme
  * (`http:`, `mailto:`), an absolute / protocol-relative path (`/x`, `//host`), or
@@ -73,7 +82,7 @@ export function parseLinkTarget(href: string): LinkTarget | null {
   const rawAnchor = hash === -1 ? '' : dest.slice(hash + 1).trim();
   const anchor = rawAnchor === '' ? null : rawAnchor;
   if (path === '') return anchor === null ? null : { path: null, anchor }; // same-document
-  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) return null; // external scheme
+  if (hasUrlScheme(path)) return null; // external scheme
   if (path.startsWith('/')) return null; // absolute or protocol-relative
   return { path, anchor };
 }
