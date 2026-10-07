@@ -1,14 +1,12 @@
 # Checks
 
 The checks `@rmartz/repo-hygiene` ships, each an independent module in the
-registry. **Default-on** checks run with no configuration, at `error` severity;
-a repo relaxes one with `severity: warn` or a laxer option. **Opt-in** checks
-ship in the package but stay dormant until a repo names them in its caller's
-`checks` input. Any default-on check can be turned off per repo with
-`enabled: false`. See the
-[distribution contract](../distribution-contract.md) for why each check is
-default-on or opt-in, the [overview](../overview.md) for how to run them, and
-[authoring a check](../authoring-a-check.md) to add one.
+registry. **Every check is default-on**: it runs with no configuration, at
+`error` severity, with recommended settings. A repo loosens one (`severity:
+warn`, a laxer option, or `enabled: false`) only as an exception with a written
+`reason`. See the [distribution contract](../distribution-contract.md#exceptions)
+for how exceptions work, the [overview](../overview.md) for how to run the
+checks, and [authoring a check](../authoring-a-check.md) to add one.
 
 | Check                                     | Default | Flags                                                                   |
 | ----------------------------------------- | ------- | ----------------------------------------------------------------------- |
@@ -20,8 +18,8 @@ default-on or opt-in, the [overview](../overview.md) for how to run them, and
 | [`okf-index`](okf-index.md)               | on      | OKF bundle navigability + no-frontmatter-on-index.                      |
 | [`md-pairing`](md-pairing.md)             | on      | `CLAUDE.md`/`AGENTS.md` not paired, or `CLAUDE.md` not a bare wrapper.  |
 | [`package-pins`](package-pins.md)         | on      | `package.json` deps not pinned to a full `major.minor.patch`.           |
-| [`action-pin-tags`](action-pin-tags.md)   | opt-in  | Pin comments naming no upstream tag, or a tag at another SHA (network). |
+| [`action-pin-tags`](action-pin-tags.md)   | on      | Pin comments naming no upstream tag, or a tag at another SHA (network). |
 
 `md-links` and `okf-fields` are **shared modules** (inline-link parsing and OKF
 optional-field validation) consumed by the checks above, not separately registered
-checks — so they have no default/opt-in status of their own.
+checks — so they have no default status of their own.

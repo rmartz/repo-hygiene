@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, size]
 
 # `file-caps`
 
-**Default:** on (error-only defaults) · **Config:** `overrides`, `mode`, `base` (+ `.repo-hygiene-baseline.json` in baseline mode) · **Opt out:** `enabled: false`
+**Default:** on (error-only defaults) · **Config:** `overrides`, `mode`, `base` (+ `.repo-hygiene-baseline.json` in baseline mode) · **Exceptions** (each needs a `reason`): `overrides`, a `mode` other than `strict`, `severity: warn`, `enabled: false`
 
 Per-glob file size caps with a migration ramp. Each file takes the **first
 matching** `overrides` entry (most-specific first, first-match-wins — no merge) and
@@ -88,7 +88,10 @@ per first-match-wins), so you tighten a glob, set a **laxer** `error` cap, or ad
 tiers by listing it. A consumer that trips the defaults on a bump fixes it with a
 one-line override, with `mode: ratchet` or `mode: grandfather` (which downgrade
 files already over cap on the base branch to `warn`, so no existing file needs a
-commit), or with `enabled: false`.
+commit), or with `enabled: false`. Each is an exception, so the section needs a
+`reason`. That includes an override that only tightens a glob: the check can't
+tell a tighter cap from a laxer one, so every override says why it departs from
+the shared caps.
 
 ## Modes
 

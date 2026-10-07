@@ -100,10 +100,12 @@ Most are enforced by eslint / the hygiene checks; the intent:
 See the authoring guide in [docs/authoring-a-check.md](docs/authoring-a-check.md): implement
 the `Check` contract, read files through the resolved `FileSet` (never call `git`
 directly — use `boundedRun` from `src/lib/bounded-subprocess.js` if you must shell
-out), register it in `src/registry.ts`, and set `defaultOn: true` **only** for a
-check that is safe to run on an arbitrary repo with no config. A new default-on
-check reaches consumers on their next Dependabot bump with no YAML edit, so the
-default-safety bar is strict.
+out), and register it in `src/registry.ts`. **Every check is default-on**
+(`defaultOn: true`) at best-practice settings, and reaches consumers on their next
+Dependabot bump with no YAML edit. A repo loosens one only as a written-down
+exception — the loosening plus a `reason` in its `.repo-hygiene.yml` section — so
+declare each of the check's laxer settings in its `loosenings` hook, and make a
+network-dependent check fail safe (`inconclusive`, never `error`).
 
 ## Worktrees, PRs, and releases
 

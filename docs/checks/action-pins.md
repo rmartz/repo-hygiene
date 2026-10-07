@@ -30,7 +30,7 @@ Full-semver format is **necessary but not sufficient**. This check validates onl
 the comment's shape, never that the tag exists upstream. `# v1.0.1` passes even
 when the only tag at that commit is `repo-hygiene-v1.0.1`, and Dependabot then
 silently never bumps the pin. Resolving the comment needs a network call, so that
-verification lives in the separate opt-in
+verification lives in the separate
 [`action-pin-tags`](action-pin-tags.md) check, and this one stays offline.
 
 The conforming shape:

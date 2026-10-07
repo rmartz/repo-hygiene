@@ -117,16 +117,17 @@ and the workflow's empty `checks` input resolve to.
 
 ## 4. Config and default-safety (`.repo-hygiene.yml`)
 
-The framework only understands one key in a check's config section: `severity`,
+The framework understands three keys in a check's config section: `severity`,
 which the runner applies uniformly to override every finding the check emits (the
 migration ramp — downgrade a whole check to `warn` while a backlog is worked off,
-then flip it back). **Every other key is yours**, read off `ctx.settings` and
-validated by the check itself:
+then flip it back), `enabled`, and `reason`. **Every other key is yours**, read off
+`ctx.settings` and validated by the check itself:
 
 ```yaml
 checks:
   my-new-check:
     severity: warn # framework-applied override (optional)
+    reason: Working off the backlog from adopting this check.
     overrides: # check-defined vocabulary, parsed by your check
       - glob: 'docs/**/*.md'
         max: 400
@@ -136,27 +137,29 @@ Parse and validate that vocabulary in a dedicated `*-config.ts` module (see
 `file-caps-config.ts`), throwing a filename-prefixed error on a malformed shape so
 a bad config fails loudly rather than silently mis-behaving.
 
-**An escape hatch is the gate for shipping.** A new default-on check reaches every
-consumer on the next Dependabot bump, before they can edit YAML. Defaults are
-strict (see [the distribution contract](distribution-contract.md)), so a
-default-on check may fail a consumer on arrival. What it must not do is fail one
-with no way out but a code change. Two legal shapes:
+**Default-on, at recommended settings.** Every built-in check sets
+`defaultOn: true` and enforces at `error` with best-practice defaults (see
+[the distribution contract](distribution-contract.md)). A new check reaches every
+consumer on the next Dependabot bump, before they can edit YAML, so it may fail a
+consumer on arrival; ship it as a breaking release whose notes name the exception
+to take. What it must not do is fail one with no way out but a code change:
 
-- **Default-on, at `error`.** It enforces a fleet convention with built-in
-  defaults (e.g. `conflict-markers`, `action-pins`, `package-pins`,
-  `file-caps`). Mark it `defaultOn: true`. Every finding must be relaxable from
-  `.repo-hygiene.yml`: `severity: warn` and `enabled: false` come from the
-  framework, and an opinionated option (a cap, a vocabulary, a rule toggle)
-  needs its own laxer setting. Ship it as a breaking release whose notes name
-  the escape hatch.
-- **Opt-in.** The check depends on something an arbitrary repo can't be assumed
-  to have, such as network access (`action-pin-tags`) or repo-specific config
-  like a blocklist. Leave `defaultOn` unset; a repo opts in by naming the check
-  in its caller and adding a config section.
+- **Every finding must be relaxable** from `.repo-hygiene.yml`. `severity: warn`
+  and `enabled: false` come from the framework; an opinionated option (a cap, a
+  vocabulary, a rule toggle) needs its own laxer setting.
+- **Declare every laxer setting in `loosenings`.** It returns the settings in a
+  section that relax the check (`['anchors: false']`); the runner then refuses
+  that section unless it carries a `reason`. Configuration that only adapts the
+  check to a repo's layout (a docs root, an index file name) is not a loosening.
+  Tightening never needs a reason.
+- **A check that needs the network fails safe**: a transient failure is
+  `inconclusive`, never an `error` (see `action-pin-tags`).
+- **A check that needs repo-specific input** (like a blocklist) no-ops when
+  unconfigured, so it is still safe default-on.
 
 The built-in checks don't set `defaultSeverity: 'warn'`: a warning exits `0`, so
 a default `warn` passes CI silently. A check that can't enforce safely by default
-should stay opt-in rather than ship at `warn`.
+needs better defaults, not a softer tier.
 
 ## 5. Test it (`test/checks/*.test.ts`)
 
@@ -231,8 +234,8 @@ The five steps above, assembled into one small check that flags configured
 forbidden substrings (say `@ts-ignore` or a `DO NOT MERGE` marker) in tracked
 files. It is **illustrative** — this check is _not_ shipped in the package — but the
 snippets are a complete, adaptable template. Note the shape it models: it reads a
-config section and **no-ops when unconfigured**, so it is strictly opt-in (the
-safe-default shape from step 4).
+config section and **no-ops when unconfigured**, so it is safe default-on (the
+repo-specific-input shape from step 4).
 
 **The check module** (`src/checks/banned-phrases.ts`) — a pure scanner plus the
 thin adapter (steps 1–2 and 4):
@@ -266,7 +269,8 @@ export function scanPhrases(text: string, phrases: string[]): { phrase: string; 
 export const bannedPhrasesCheck: Check = {
   name: NAME,
   description: 'Flags configured forbidden substrings in tracked files.',
-  // No `defaultOn`: it no-ops with no config, so it ships opt-in.
+  // Default-on like every check: with no config it no-ops.
+  defaultOn: true,
   async run(ctx) {
     const phrases = bannedPhrases(ctx.settings);
     if (phrases.length === 0) return []; // dormant until a repo configures phrases
@@ -296,9 +300,9 @@ import { bannedPhrasesCheck } from './checks/banned-phrases.js';
 // …then inside builtinChecks(): return [ …existing checks…, bannedPhrasesCheck ];
 ```
 
-**Opt in** (a consumer's `.repo-hygiene.yml`, step 4) — with no section the check
-stays silent; a repo turns it on by listing phrases and naming `banned-phrases` in
-its caller's `checks` input:
+**Configure it** (a consumer's `.repo-hygiene.yml`, step 4) — with no section the
+check stays silent; a repo puts it to work by listing phrases (tightening, so no
+`reason` is needed):
 
 ```yaml
 checks:
@@ -355,6 +359,5 @@ describe('banned-phrases', () => {
 ```
 
 That is the whole arc: a pure function you unit-test, a thin adapter, one registry
-line, an opt-in config section, and a test — no framework plumbing to touch.
-Whether it should be **default-on** is the separate `defaultOn` decision from step
-4; a substring blocklist is inherently repo-specific, so it stays opt-in.
+line, a config section, and a test — no framework plumbing to touch. It has no
+laxer setting, so it declares no `loosenings`.

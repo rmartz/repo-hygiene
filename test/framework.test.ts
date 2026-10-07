@@ -75,24 +75,23 @@ describe('registry defaultNames', () => {
     expect(registry.defaultNames()).toEqual(['b', 'c']);
   });
 
-  it('the built-in default-on set is every check except the network-dependent action-pin-tags', () => {
+  it('the built-in default-on set is every check', () => {
     expect(createRegistry().defaultNames()).toEqual([
       'conflict-markers',
       'okf',
       'okf-index',
       'docs-links',
       'action-pins',
+      'action-pin-tags',
       'package-pins',
       'md-pairing',
       'file-caps',
     ]);
   });
 
-  it('action-pin-tags is the only opt-in check', () => {
+  it('no built-in check is opt-in', () => {
     const registry = createRegistry();
-    expect(registry.names().filter((n) => !registry.defaultNames().includes(n))).toEqual([
-      'action-pin-tags',
-    ]);
+    expect(registry.defaultNames()).toEqual(registry.names());
   });
 
   it('no built-in check softens its findings to warn by default', () => {
@@ -130,7 +129,7 @@ describe('runHygiene', () => {
     const registry = createRegistry([fakeCheck('a', [inconclusive('a'), err('a')])]);
     const result = await runHygiene(registry, {
       mode: '--check',
-      config: { checks: { a: { severity: 'warn' } } },
+      config: { checks: { a: { severity: 'warn', reason: 'ramping' } } },
     });
     expect(result.findings.map((f) => f.severity)).toEqual(['inconclusive', 'warn']);
     expect(result.exitCode).toBe(3);
@@ -186,7 +185,9 @@ describe('runHygiene', () => {
 
   it('downgrades a check to warn via config severity (the ramp) → exit 0', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')])]);
-    const ramped = { checks: { a: { severity: 'warn' as const } } };
+    const ramped = {
+      checks: { a: { severity: 'warn' as const, reason: 'working off a backlog' } },
+    };
     const result = await runHygiene(registry, { mode: '--check', config: ramped });
     expect(result.findings[0]?.severity).toBe('warn');
     expect(result.exitCode).toBe(0);
@@ -202,7 +203,7 @@ describe('runHygiene', () => {
 
   it('skips a check disabled via config (enabled: false)', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')]), fakeCheck('b', [err('b')])]);
-    const cfg = { checks: { a: { enabled: false } } };
+    const cfg = { checks: { a: { enabled: false, reason: 'not applicable here' } } };
     const result = await runHygiene(registry, { mode: '--check', config: cfg });
     expect(result.findings.map((f) => f.check)).toEqual(['b']);
     expect(result.exitCode).toBe(1);
@@ -210,7 +211,7 @@ describe('runHygiene', () => {
 
   it('enabled: false wins even when the check is named explicitly', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')])]);
-    const cfg = { checks: { a: { enabled: false } } };
+    const cfg = { checks: { a: { enabled: false, reason: 'not applicable here' } } };
     const result = await runHygiene(registry, { mode: '--check', only: ['a'], config: cfg });
     expect(result.findings).toEqual([]);
     expect(result.exitCode).toBe(0);
