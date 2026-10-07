@@ -72,8 +72,11 @@ export function findRepoRefs(text: string, owner: string): { repo: string; line:
   text.split('\n').forEach((lineText, i) => {
     const seen = new Set<string>();
     for (const m of lineText.matchAll(pattern)) {
-      const repo = m[1]!
-        .replace(/\.+$/, '')
+      const name = m[1]!;
+      let end = name.length;
+      while (end > 0 && name[end - 1] === '.') end--;
+      const repo = name
+        .slice(0, end)
         .replace(/\.git$/i, '')
         .toLowerCase();
       if (!repo || seen.has(repo)) continue;

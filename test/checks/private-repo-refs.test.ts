@@ -123,6 +123,14 @@ describe('recognizes same-owner reference forms', () => {
     expect(findRepoRefs('acme/x#1 and acme/x#2', 'acme')).toEqual([{ repo: 'x', line: 1 }]);
   });
 
+  it('trims a very long run of trailing dots in linear time', () => {
+    const dots = '.'.repeat(50_000);
+    const start = performance.now();
+    expect(findRepoRefs(`acme/x${dots}!`, 'acme')).toEqual([{ repo: 'x', line: 1 }]);
+    expect(findRepoRefs(`acme/${dots}!`, 'acme')).toEqual([]);
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
+
   it('parses https and ssh remotes', () => {
     expect(parseGithubRemote('https://github.com/acme/site.git')).toBe('acme/site');
     expect(parseGithubRemote('git@github.com:acme/site')).toBe('acme/site');
