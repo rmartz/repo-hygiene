@@ -209,6 +209,14 @@ export const fileCapsCheck: Check = {
   // hard-gate on size; a consumer sets mode: ratchet or grandfather, overrides
   // the cap, or opts out.
   defaultOn: true,
+  // Any per-glob override departs from the shared caps, and every mode but
+  // `strict` exempts files already over cap.
+  loosenings: (settings) => [
+    ...(Array.isArray(settings.overrides) && settings.overrides.length > 0 ? ['overrides'] : []),
+    ...(settings.mode !== undefined && settings.mode !== 'strict'
+      ? [`mode: ${String(settings.mode)}`]
+      : []),
+  ],
   async run(ctx) {
     const entries = resolveFileCapsOverrides(ctx.settings);
     const { mode, base } = parseFileCapsMode(ctx.settings);

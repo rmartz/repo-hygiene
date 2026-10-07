@@ -55,6 +55,13 @@ export interface CheckConfig {
    * how the check was selected (default set or explicitly named).
    */
   enabled?: boolean;
+  /**
+   * Why this repo needs an exception to the check's recommended settings.
+   * Required whenever the section loosens the check — `enabled: false`,
+   * `severity: warn`, or any setting the check's `loosenings` reports — so every
+   * relaxation is written down where review sees it. Tightening needs none.
+   */
+  reason?: string;
   [key: string]: unknown;
 }
 
@@ -98,5 +105,13 @@ export interface Check {
    * keeps the intrinsic severity the check emitted.
    */
   defaultSeverity?: Severity;
+  /**
+   * The settings in `settings` that make this check more lenient than its
+   * recommended defaults, each named as written (e.g. `anchors: false`). The
+   * runner refuses to run a check whose section loosens it without a `reason`.
+   * Omit when the check has no lenient options. The framework's own `enabled:
+   * false` and `severity: warn` are covered by the runner, not listed here.
+   */
+  loosenings?(settings: CheckConfig): string[];
   run(ctx: CheckContext): Promise<Finding[]>;
 }

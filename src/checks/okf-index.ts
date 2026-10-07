@@ -279,6 +279,7 @@ export const okfIndexCheck: Check = {
   // Default-on at error (like okf): a repo whose docs/ is not an OKF bundle
   // relaxes it with `severity: warn` or opts out with `enabled: false`.
   defaultOn: true,
+  loosenings: (settings) => (settings.nestedIndexes === false ? ['nestedIndexes: false'] : []),
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     const paths = (await trackedFiles({ cwd: ctx.cwd })).filter(

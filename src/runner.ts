@@ -2,6 +2,7 @@ import { resolveFileSet, type Mode } from './discovery.js';
 import type { Finding, RepoHygieneConfig } from './types.js';
 import type { Registry } from './registry.js';
 import { EXIT_CLEAN, EXIT_FAILURE, EXIT_INCONCLUSIVE, InconclusiveError } from './outcome.js';
+import { assertExceptionReason } from './exceptions.js';
 
 /**
  * The engine: resolve the file set once, run the selected checks over it, apply
@@ -46,6 +47,9 @@ export async function runHygiene(registry: Registry, req: RunRequest): Promise<R
   const env = req.env ?? process.env;
   const files = await resolveFileSet(req.mode, { cwd: req.cwd });
   const checks = selectChecks(registry, req.only);
+  // Refuse an unexplained loosening up front, before any check runs, so a config
+  // fault never reads as a partial result.
+  for (const check of checks) assertExceptionReason(check, req.config.checks[check.name] ?? {});
   const findings: Finding[] = [];
   for (const check of checks) {
     const settings = req.config.checks[check.name] ?? {};

@@ -142,8 +142,10 @@ interface Pin {
 export const actionPinTagsCheck: Check = {
   name: NAME,
   description: 'GitHub Actions pin comments name an upstream tag at the pinned SHA (network).',
-  // Never default-on: it makes a network call per upstream, which the default
-  // suite's offline, tree-only cost model deliberately excludes.
+  // Default-on like every check, though it lists each upstream's tags over the
+  // network: an unreachable upstream is inconclusive or warn-and-skip, never a
+  // failure, so it is safe on any consumer.
+  defaultOn: true,
   async run(ctx) {
     const pins: Pin[] = [];
     for (const path of ctx.files.paths) {
