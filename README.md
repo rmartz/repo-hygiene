@@ -80,7 +80,7 @@ the [consumer guide](docs/consuming.md) for the full reference.
 ## Checks
 
 `conflict-markers`, `action-pins`, `action-pin-tags`, `package-pins`, `docs-links`, `md-links`,
-`md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps` — see
+`md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps`, `actionlint` — see
 [docs/checks/](docs/checks/index.md).
 
 ## Requirements

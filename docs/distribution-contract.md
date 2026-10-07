@@ -75,7 +75,8 @@ What counts as loosening:
 - **A laxer option**: `exempt` / `anchors: false` / `anchorExempt`
   (`docs-links`), `wrapper: false` (`md-pairing`), `types: "*"` / `exempt` / a
   `resourceExemptTypes` beyond the defaults (`okf`), `nestedIndexes: false`
-  (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`).
+  (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`),
+  `shellcheck: false` / `shellcheckSeverity: error` / `ignore` (`actionlint`).
   Each check's page lists its own.
 
 Configuration that only adapts a check to the repo's layout (`roots`,

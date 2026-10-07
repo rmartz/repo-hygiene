@@ -94,7 +94,8 @@ from the package's registry:
 
 - **Omit `checks` entirely** → the Action runs the **default-on** set — every
   built-in check (`conflict-markers`, `action-pins`, `action-pin-tags`,
-  `package-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) —
+  `package-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`,
+  `actionlint`) —
   and a newly-added check **auto-joins** on your next Dependabot bump with no
   edit to your caller. This is the recommended default. Every one of them
   enforces at `error` at its recommended settings; take an exception in
@@ -108,7 +109,7 @@ from the package's registry:
 - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
   with:
     # pin an explicit set (forfeits auto-join of future checks)
-    checks: conflict-markers action-pins action-pin-tags package-pins docs-links md-pairing okf okf-index file-caps
+    checks: conflict-markers action-pins action-pin-tags package-pins docs-links md-pairing okf okf-index file-caps actionlint
     config: .repo-hygiene.yml
 ```
 
@@ -129,6 +130,7 @@ commit message that adds it):
 | `conflict-markers` | on      | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                                                                                                                     |
 | `action-pins`      | on      | none                                                                                                                                                                                                                                                                                                                           |
 | `action-pin-tags`  | on      | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                                                                                                                        |
+| `actionlint`       | on      | `shellcheckSeverity` (`warning` default; `info`/`style` tighten, `error` is an exception); `shellcheck` (bool, default `true`; `false` is an exception); `ignore` _(exception)_ (path glob → message regexes). See [actionlint.md](checks/actionlint.md). |
 | `package-pins`     | on      | none                                                                                                                                                                                                                                                                                                                           |
 | `docs-links`       | on      | `roots` (dirs to scan, default `[docs]`); `exempt` _(exception)_ (link targets allowed to dangle); `anchors` (validate `#fragment` targets, bool, default `true`; `false` is an exception); `anchorExempt` _(exception)_                                                                                                       |
 | `md-pairing`       | on      | `wrapper` (each `CLAUDE.md` must be a bare import line; default `@AGENTS.md`, a custom string, or `false` to skip the rule — an exception)                                                                                                                                                                                     |

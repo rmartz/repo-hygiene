@@ -55,3 +55,15 @@ updates:
         update-types:
           - minor
           - patch
+  # The actionlint release the `actionlint` check downloads. Dependabot can't read
+  # the pin in src/checks/actionlint-release.ts, so it watches this sensor
+  # Dockerfile instead (nothing builds it). A bump goes red until the pin is
+  # regenerated with `node scripts/update-actionlint.mjs <version>`. It ships a new
+  # linter to consumers, so it lands as `fix` and cuts a patch release.
+  - package-ecosystem: docker
+    directory: /tools/actionlint
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: fix
+      include: scope
