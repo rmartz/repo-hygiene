@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { isIgnored, parseActionlintSettings } from '../../src/checks/actionlint-config.js';
 
 describe('parseActionlintSettings', () => {
-  it('defaults to the strict configuration', () => {
+  it('defaults to the recommended configuration', () => {
     expect(parseActionlintSettings({})).toEqual({
       shellcheck: true,
-      shellcheckSeverity: 'style',
+      shellcheckSeverity: 'warning',
       ignore: [],
     });
   });
 
-  it('accepts each opt-out', () => {
+  it('accepts each exception', () => {
     const parsed = parseActionlintSettings({
       shellcheck: false,
       shellcheckSeverity: 'warning',

@@ -4,7 +4,7 @@ import type { Check, Finding } from '../types.js';
 import { boundedRun } from '../lib/bounded-subprocess.js';
 import { InconclusiveError } from '../outcome.js';
 import { installActionlint } from './actionlint-binary.js';
-import { isIgnored, parseActionlintSettings } from './actionlint-config.js';
+import { actionlintLoosenings, isIgnored, parseActionlintSettings } from './actionlint-config.js';
 
 /**
  * Workflow linting with [actionlint](https://github.com/rhysd/actionlint) (#104):
@@ -13,10 +13,9 @@ import { isIgnored, parseActionlintSettings } from './actionlint-config.js';
  * shipped reusable workflow never fails in the repo that owns it, only later in a
  * consumer's CI, which is the gap this closes.
  *
- * Opt-in: it downloads a pinned actionlint release (network), which the default
- * suite's offline cost model excludes. Once named, it is strict by default — full
- * shellcheck, nothing ignored — and a repo loosens it only by writing the opt-out
- * down in `.repo-hygiene.yml` (see `actionlint-config.ts`).
+ * Default-on at recommended settings (see `actionlint-config.ts`). It downloads a
+ * pinned actionlint release, so like every network check it fails safe: a download
+ * that can't complete is inconclusive, never an `error`.
  */
 
 const NAME = 'actionlint';
@@ -65,7 +64,8 @@ async function hasShellcheck(env: NodeJS.ProcessEnv): Promise<boolean> {
 export const actionlintCheck: Check = {
   name: NAME,
   description: 'Lints GitHub Actions workflows with a pinned actionlint, shellcheck included.',
-  // Never default-on: it downloads the actionlint release on every run.
+  defaultOn: true,
+  loosenings: actionlintLoosenings,
   async run(ctx) {
     const settings = parseActionlintSettings(ctx.settings);
     const workflows = ctx.files.paths.filter(isWorkflowPath);
@@ -81,7 +81,7 @@ export const actionlintCheck: Check = {
       findings.push({
         check: NAME,
         message:
-          'shellcheck is not on PATH, so no `run:` block was shellchecked; install shellcheck, or set `shellcheck: false` to opt out',
+          'shellcheck is not on PATH, so no `run:` block was shellchecked; install shellcheck, or take an exception with `shellcheck: false` and a `reason`',
         severity: 'error',
       });
       shellcheck = false;

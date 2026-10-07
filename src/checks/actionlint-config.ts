@@ -3,10 +3,12 @@ import { isPlainObject } from '../lib/is-plain-object.js';
 import type { CheckConfig } from '../types.js';
 
 /**
- * Config vocabulary for the `actionlint` check. Every default is the strict one:
- * shellcheck runs over every `run:` block at shellcheck's own lowest severity, and
- * nothing is ignored. Each key is an explicit opt-out a repo writes down when it
- * needs to loosen the check.
+ * Config vocabulary for the `actionlint` check. The defaults are the recommended
+ * ones: shellcheck runs over every `run:` block and reports warnings and errors
+ * (its info and style notes are opinion, not defects), and only the known
+ * actionlint false positives in {@link BUILTIN_IGNORES} are dropped. A repo may
+ * tighten freely; loosening is an exception that needs a `reason` (see
+ * {@link actionlintLoosenings}).
  */
 
 export const SHELLCHECK_SEVERITIES = ['style', 'info', 'warning', 'error'] as const;
@@ -22,7 +24,7 @@ export interface IgnoreRule {
 export interface ActionlintSettings {
   /** Run shellcheck over `run:` blocks (default `true`). */
   shellcheck: boolean;
-  /** The lowest shellcheck severity reported (default `style`, i.e. everything). */
+  /** The lowest shellcheck severity reported (default `warning`). */
   shellcheckSeverity: ShellcheckSeverity;
   /** Per-glob message ignores, mirroring actionlint's `paths.<glob>.ignore`. */
   ignore: IgnoreRule[];
@@ -49,9 +51,30 @@ function parseIgnore(raw: unknown): IgnoreRule[] {
   });
 }
 
+/**
+ * Messages actionlint reports in error on valid workflows, dropped for every repo.
+ * actionlint 1.7.12 does not model the `job.workflow_*` contexts GitHub added for
+ * reusable workflows; the match is anchored to the `job` object type (whose first
+ * property is `check_run_id`), so a real typo like `job.nope` still fails. Drop an
+ * entry once the pinned actionlint models it.
+ */
+export const BUILTIN_IGNORES: RegExp[] = [
+  /^property "workflow_(?:ref|sha|repository|file_path)" is not defined in object type \{check_run_id: /,
+];
+
+/** The section's settings that loosen the check, as the framework's exception rule names them. */
+export function actionlintLoosenings(settings: CheckConfig): string[] {
+  const { shellcheck, shellcheckSeverity, ignore } = settings;
+  return [
+    ...(shellcheck === false ? ['shellcheck: false'] : []),
+    ...(shellcheckSeverity === 'error' ? ['shellcheckSeverity: error'] : []),
+    ...(isPlainObject(ignore) && Object.keys(ignore).length > 0 ? ['ignore'] : []),
+  ];
+}
+
 /** Parse and validate the check's `.repo-hygiene.yml` section. */
 export function parseActionlintSettings(settings: CheckConfig): ActionlintSettings {
-  const { shellcheck = true, shellcheckSeverity = 'style', ignore } = settings;
+  const { shellcheck = true, shellcheckSeverity = 'warning', ignore } = settings;
   if (typeof shellcheck !== 'boolean') {
     throw new Error('actionlint: "shellcheck" must be true or false');
   }
@@ -67,7 +90,10 @@ export function parseActionlintSettings(settings: CheckConfig): ActionlintSettin
   };
 }
 
-/** Whether an ignore rule covers a finding's message in `path`. */
+/** Whether a built-in or repo ignore rule covers a finding's message in `path`. */
 export function isIgnored(rules: IgnoreRule[], path: string, message: string): boolean {
-  return rules.some((rule) => rule.matches(path) && rule.patterns.some((re) => re.test(message)));
+  return (
+    BUILTIN_IGNORES.some((re) => re.test(message)) ||
+    rules.some((rule) => rule.matches(path) && rule.patterns.some((re) => re.test(message)))
+  );
 }

@@ -1,15 +1,17 @@
 ---
 type: Library
 title: The actionlint check
-description: 'Opt-in workflow linter: runs a pinned, checksum-verified actionlint (shellcheck included) over .github/workflows, strict by default with explicit per-repo opt-outs.'
+description: 'Default-on workflow linter: runs a pinned, checksum-verified actionlint (shellcheck included) over .github/workflows at recommended settings, loosened only as a reasoned exception.'
 resource: src/checks/actionlint.ts
 tags: [hygiene, ci, checks, github-actions, shellcheck, dependabot]
 ---
 
 # `actionlint`
 
-**Default:** opt-in (never default-on) · **Config:** `shellcheck`,
-`shellcheckSeverity`, `ignore` · **Network:** yes (downloads actionlint)
+**Default:** on · **Config:** `shellcheck`, `shellcheckSeverity`, `ignore` ·
+**Network:** yes (downloads actionlint) · **Exceptions** (each needs a
+`reason`): `shellcheck: false`, `shellcheckSeverity: error`, `ignore`,
+`severity: warn`, `enabled: false`
 
 [actionlint](https://github.com/rhysd/actionlint) type-checks `${{ }}`
 expressions, validates `workflow_call` inputs, outputs and secrets, and runs
@@ -37,53 +39,63 @@ the working-tree content, not the staged blob. actionlint also reads the repo's
 own `.github/actionlint.yaml` if one exists (self-hosted runner labels,
 `config-variables`), and shellcheck reads `.shellcheckrc`; both work as usual.
 
-## Strict by default
+## Recommended settings
 
-Once named, the check runs at its strictest: shellcheck at its own lowest
-severity (`style`, so info and style notes fail too), and nothing ignored. A
-repo loosens it only by **writing the opt-out down** in `.repo-hygiene.yml`, so
-every relaxation is visible and reviewable. There is no built-in ignore list,
-not even for known actionlint false positives.
+With no config the check runs at the settings the fleet should hold itself to:
 
-If shellcheck is missing, actionlint would silently skip it. This check
-reports that as an `error` instead (and still runs the rest of actionlint), so
-"no shellcheck findings" never means "shellcheck never ran".
+- **shellcheck at `warning` and above.** Warnings and errors are defects; info
+  and style notes (SC2086 quoting, SC2129 grouping, SC2016 on deliberate
+  single-quoted backticks) are opinion, so they're left out by default. A repo
+  can tighten to `info` or `style` with no reason needed.
+- **Known actionlint false positives dropped.** actionlint 1.7.12 doesn't model
+  the `job.workflow_ref`, `job.workflow_sha`, `job.workflow_repository`, and
+  `job.workflow_file_path` contexts GitHub added for reusable workflows, and
+  flags them as undefined. The check drops exactly those four on the `job`
+  context (`BUILTIN_IGNORES` in `actionlint-config.ts`), so a real typo such as
+  `job.nope` still fails. An entry is removed once the pinned actionlint models
+  it.
+- **shellcheck must be present.** actionlint silently skips shellcheck when it
+  is missing. This check reports that as an `error` instead (and still runs the
+  rest of actionlint), so "no shellcheck findings" never means "shellcheck never
+  ran". GitHub's `ubuntu-latest` ships shellcheck.
 
-## Opt-outs
+## Exceptions
+
+A repo loosens the check only as a written-down exception: the setting plus a
+`reason` in the same section. The run refuses one without it (see
+[exceptions](../distribution-contract.md#exceptions)).
 
 ```yaml
 checks:
   actionlint:
-    # Drop shellcheck findings below this severity: style (default) | info |
-    # warning | error. Passed to shellcheck as SHELLCHECK_OPTS="-S <level>".
-    shellcheckSeverity: warning
-    # Don't shellcheck run: blocks at all (and don't require shellcheck).
-    shellcheck: false
     # Per-glob message ignores, mirroring actionlint's own `paths.<glob>.ignore`:
     # each regex is matched against the finding's message, for the workflow
     # files the glob matches. `**` applies repo-wide.
     ignore:
-      '.github/workflows/release.yml':
-        - 'property "workflow_(sha|repository)" is not defined'
+      '.github/workflows/bot-automerge-reusable.yml':
+        - 'invalid format because ref is missing'
+    reason: >-
+      `uses: $/…` is the runner's self-repository syntax, which actionlint
+      1.7.12 does not parse.
 ```
 
-Plus the framework's `severity: warn` for the usual ramp (report the backlog
-without failing, fix it, then remove the override). A malformed key (an unknown
-severity, a non-list ignore, an invalid regex) fails the run loudly.
+The other exceptions are `shellcheckSeverity: error` (report only shellcheck
+errors), `shellcheck: false` (don't shellcheck `run:` blocks, or require
+shellcheck), and the framework's `severity: warn` / `enabled: false`. Tightening
+(`shellcheckSeverity: info` or `style`) needs no reason. A malformed key (an
+unknown severity, a non-list ignore, an invalid regex) fails the run loudly.
 
-### Known false positives (actionlint 1.7.12)
+### Fleet baseline (actionlint 1.7.12)
 
-A fleet baseline over every `rmartz` Actions repo found no real bugs, only these.
-Each repo that hits one opts out explicitly:
+A baseline over every `rmartz` Actions repo found no real bugs. At the
+recommended settings all of it clears with no config, except one finding still
+to confirm:
 
-| Finding                                                 | Opt-out                                                                                    |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `property "workflow_repository"` / `"workflow_sha"` …   | `ignore: { '<the workflow>': ['property "workflow_(sha\|repository)" is not defined'] }`   |
-| SC2016 on deliberate Markdown backticks in single quote | `ignore: { '<the workflow>': ['SC2016'] }`, or a `# shellcheck disable=SC2016` in the step |
-| SC2086 / SC2129 (info / style)                          | fix them, or `shellcheckSeverity: warning`                                                 |
-
-The `job.workflow_*` contexts are real; actionlint 1.7.12 does not model them
-yet. Drop the ignore once a pinned release does.
+| Finding                                                                    | At recommended settings                                  |
+| -------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `property "workflow_repository"` / `"workflow_sha"` …                      | dropped by the built-in ignore                           |
+| SC2016 / SC2086 / SC2129 (info / style)                                    | below the `warning` floor                                |
+| `uses: $/…` "invalid format because ref is missing" (bot-automerge-action) | needs confirming; an `ignore` with a `reason` until then |
 
 ## The pin
 
@@ -114,9 +126,9 @@ actionlint lints only `.github/workflows/*`. It does **not** shellcheck the
 [#126](https://github.com/rmartz/repo-hygiene/issues/126); this check doesn't
 pretend to cover it.
 
-## Why opt-in
+## Cost
 
-It downloads a ~2 MB release archive on every run, which the default suite's
-offline, tree-only cost model excludes (see the
-[distribution contract](../distribution-contract.md)). Only a repo that ships
-workflows worth linting names it in its `checks` input.
+It downloads a ~2 MB release archive whenever a workflow is in scope, and
+nothing otherwise. A download that can't complete (offline, rate-limited, a
+stalled body) makes the run inconclusive, never an `error` (see
+[network-dependent checks](../distribution-contract.md#network-dependent-checks-fail-safe)).

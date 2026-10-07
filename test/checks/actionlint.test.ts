@@ -35,6 +35,11 @@ const lintError = (filepath: string, message: string, kind = 'expression', line 
   end_column: 9,
 });
 const WORKFLOW_SHA = 'property "workflow_sha" is not defined in object type {}';
+/** actionlint 1.7.12's real message for the `job.workflow_*` false positive. */
+const JOB_CONTEXT =
+  '{check_run_id: number; container: {id: string; network: string}; status: string}';
+const jobProperty = (name: string) =>
+  `property "${name}" is not defined in object type ${JOB_CONTEXT}`;
 const SC2016 = 'shellcheck reported issue in this script: SC2016:info:1:6: Expressions don';
 
 /** Queue a present shellcheck, then actionlint's JSON output. */
@@ -120,17 +125,28 @@ describe('pass and fail', () => {
   });
 });
 
-describe('strict by default', () => {
-  it('runs full shellcheck with no severity filter and ignores nothing', async () => {
-    queueRun([
-      lintError('.github/workflows/a.yml', WORKFLOW_SHA),
-      lintError('.github/workflows/a.yml', SC2016, 'shellcheck'),
-    ]);
-    const findings = await actionlintCheck.run(ctx(filesOf('.github/workflows/a.yml')));
-    expect(findings).toHaveLength(2);
+describe('recommended defaults', () => {
+  it('runs shellcheck at warning and above', async () => {
+    queueRun([]);
+    await actionlintCheck.run(ctx(filesOf('.github/workflows/ci.yml')));
     const [, args, opts] = actionlintCall() ?? [];
     expect(args).not.toContain('-shellcheck=');
-    expect(opts.env.SHELLCHECK_OPTS).toBeUndefined();
+    expect(opts.env).toMatchObject({ SHELLCHECK_OPTS: '-S warning', PATH: '/usr/bin' });
+  });
+
+  it('drops the job.workflow_* false positive, and nothing else', async () => {
+    queueRun([
+      ...['workflow_sha', 'workflow_repository', 'workflow_ref', 'workflow_file_path'].map((p) =>
+        lintError('.github/workflows/a.yml', jobProperty(p)),
+      ),
+      lintError('.github/workflows/a.yml', jobProperty('nope')),
+      lintError('.github/workflows/a.yml', WORKFLOW_SHA),
+    ]);
+    const findings = await actionlintCheck.run(ctx(filesOf('.github/workflows/a.yml')));
+    expect(findings.map((f) => f.message)).toEqual([
+      `${jobProperty('nope')} [expression]`,
+      `${WORKFLOW_SHA} [expression]`,
+    ]);
   });
 
   it('fails when shellcheck is missing rather than silently skipping it', async () => {
@@ -152,7 +168,16 @@ describe('strict by default', () => {
   });
 });
 
-describe('opt-outs', () => {
+describe('tightening and exceptions', () => {
+  it('shellcheckSeverity: style tightens to every note shellcheck has', async () => {
+    queueRun([lintError('.github/workflows/a.yml', SC2016, 'shellcheck')]);
+    const findings = await actionlintCheck.run(
+      ctx(filesOf('.github/workflows/a.yml'), { shellcheckSeverity: 'style' }),
+    );
+    expect(findings).toHaveLength(1);
+    expect(actionlintCall()?.[2].env.SHELLCHECK_OPTS).toBeUndefined();
+  });
+
   it('shellcheck: false disables shellcheck without probing for it', async () => {
     queueRun([], { shellcheck: false });
     const findings = await actionlintCheck.run(
@@ -163,15 +188,21 @@ describe('opt-outs', () => {
     expect(actionlintCall()?.[1]).toContain('-shellcheck=');
   });
 
-  it('shellcheckSeverity raises the floor through SHELLCHECK_OPTS', async () => {
+  it('shellcheckSeverity: error raises the floor through SHELLCHECK_OPTS', async () => {
     queueRun([]);
     await actionlintCheck.run(
-      ctx(filesOf('.github/workflows/ci.yml'), { shellcheckSeverity: 'warning' }),
+      ctx(filesOf('.github/workflows/ci.yml'), { shellcheckSeverity: 'error' }),
     );
-    expect(actionlintCall()?.[2].env).toMatchObject({
-      SHELLCHECK_OPTS: '-S warning',
-      PATH: '/usr/bin',
-    });
+    expect(actionlintCall()?.[2].env.SHELLCHECK_OPTS).toBe('-S error');
+  });
+
+  it.each([
+    [{ shellcheck: false }, ['shellcheck: false']],
+    [{ shellcheckSeverity: 'error' }, ['shellcheckSeverity: error']],
+    [{ ignore: { '**': ['x'] } }, ['ignore']],
+    [{ shellcheckSeverity: 'style', shellcheck: true, ignore: {} }, []],
+  ])('declares %j as loosening %j', (settings, expected) => {
+    expect(actionlintCheck.loosenings?.(settings)).toEqual(expected);
   });
 
   it('ignore drops matching messages only for the paths its glob covers', async () => {
@@ -219,9 +250,9 @@ describe('parseActionlintJson', () => {
 });
 
 describe('registration', () => {
-  it('is registered but opt-in', () => {
+  it('is registered and default-on', () => {
     const registry = createRegistry(builtinChecks());
     expect(registry.get('actionlint')).toBe(actionlintCheck);
-    expect(registry.defaultNames()).not.toContain('actionlint');
+    expect(registry.defaultNames()).toContain('actionlint');
   });
 });
