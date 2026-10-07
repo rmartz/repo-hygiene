@@ -86,6 +86,7 @@ describe('registry defaultNames', () => {
       'package-pins',
       'md-pairing',
       'file-caps',
+      'actionlint',
     ]);
   });
 

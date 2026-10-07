@@ -76,8 +76,9 @@ What counts as loosening:
   (`docs-links`), `wrapper: false` (`md-pairing`), `types: "*"` / `exempt` / a
   `resourceExemptTypes` beyond the defaults (`okf`), `nestedIndexes: false`
   (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`),
-  `tagPinOwners` naming owners beyond the repo's own (`action-pins`). Each
-  check's page lists its own.
+  `tagPinOwners` naming owners beyond the repo's own (`action-pins`),
+  `shellcheck: false` / `shellcheckSeverity: error` / `ignore` (`actionlint`).
+  Each check's page lists its own.
 
 Configuration that only adapts a check to the repo's layout (`roots`,
 `indexName`, a named `types` vocabulary, a custom `wrapper` file) is not an

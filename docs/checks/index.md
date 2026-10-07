@@ -19,6 +19,7 @@ checks, and [authoring a check](../authoring-a-check.md) to add one.
 | [`md-pairing`](md-pairing.md)             | on      | `CLAUDE.md`/`AGENTS.md` not paired, or `CLAUDE.md` not a bare wrapper.                                               |
 | [`package-pins`](package-pins.md)         | on      | `package.json` deps not pinned to a full `major.minor.patch`.                                                        |
 | [`action-pin-tags`](action-pin-tags.md)   | on      | Pin comments naming no upstream tag, or a tag at another SHA (network).                                              |
+| [`actionlint`](actionlint.md)             | on      | Workflow errors from a pinned actionlint, shellcheck included (network).                                             |
 
 `md-links` and `okf-fields` are **shared modules** (inline-link parsing and OKF
 optional-field validation) consumed by the checks above, not separately registered
