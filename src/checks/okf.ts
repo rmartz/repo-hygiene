@@ -1,13 +1,15 @@
 import matter from 'gray-matter';
 import type { Check, CheckConfig, Finding } from '../types.js';
 import { repoPathExists } from '../discovery.js';
+import { hasUrlScheme } from './md-links.js';
 import { validateOptionalFields } from './okf-fields.js';
 
 /**
  * Open Knowledge Format frontmatter conformance for docs pages. Every
  * docs page except the reserved files must carry a non-empty `type` plus a
  * `title` and `description`; a non-exempt type must name a `resource`, and any
- * `resource` a page names — exempt type or not — must exist.
+ * local-path `resource` a page names — exempt type or not — must exist (a URL
+ * resource is accepted without a network probe).
  *
  * The OKF spec makes `type` the only always-required key and leaves its
  * vocabulary **open** to the producer, so `types` accepts either a closed list
@@ -111,14 +113,16 @@ export function validateDoc(
   // non-exempt type (including a missing type), unless resources are waived
   // wholesale with `resourceExemptTypes: "*"`. Exemption only waives the
   // requirement: a resource that is set is always validated, since agents follow
-  // it to the documented source whatever the page's type.
+  // it to the documented source whatever the page's type. Only a local path must
+  // exist: a URL (`https://…`) links to an external source and is not fetched,
+  // keeping the check offline and deterministic (#122).
   const resourceExempt =
     cfg.resourceExemptTypes === '*' ||
     (type !== undefined && cfg.resourceExemptTypes.includes(type));
   const resource = data.resource;
   if (typeof resource !== 'string' || resource === '') {
     if (!resourceExempt) push(`${type ?? 'this'} page needs a resource`);
-  } else if (!existsFn(resource)) {
+  } else if (!hasUrlScheme(resource) && !existsFn(resource)) {
     push(`resource not found: ${resource}`);
   }
 
