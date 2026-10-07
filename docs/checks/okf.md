@@ -16,8 +16,10 @@ yet relaxes it with `severity: warn` while it migrates, or turns it off with
 
 Open Knowledge Format frontmatter conformance for docs pages. Every docs page
 except the reserved files must carry a non-empty `type` plus a `title` and
-`description`; a non-exempt type must name a `resource`, and any `resource` a
-page sets must exist on disk. See
+`description`; a non-exempt type must name a `resource`, and any local-path
+`resource` a page sets must exist on disk. A URL `resource` (any value with a
+scheme, e.g. `https://…`) links to an external source and is accepted without a
+network probe, so the check stays offline and deterministic. See
 [the OKF format](../okf-format.md) for how this repo applies OKF.
 
 The OKF spec makes `type` the **only** always-required key and leaves its
@@ -33,7 +35,8 @@ For each in-scope `docs/**/*.md` page:
   list.
 - missing `title` or `description`.
 - a non-`resourceExempt` type with no `resource`.
-- a `resource` that doesn't exist on disk, on **any** page. A resource-exempt
+- a local-path `resource` that doesn't exist on disk, on **any** page (a URL
+  `resource` is never probed). A resource-exempt
   type doesn't _need_ a `resource`, but one it sets is still validated, since
   agents follow it to the documented source.
 - an OKF optional lifecycle/trust/provenance field with an invalid value (e.g. a
