@@ -39,12 +39,6 @@ function validateCheckConfig(name: string, value: unknown): CheckConfig {
         `${JSON.stringify(value.enabled)} (expected true or false)`,
     );
   }
-  if (
-    value.reason !== undefined &&
-    (typeof value.reason !== 'string' || value.reason.trim() === '')
-  ) {
-    throw new Error(`${CONFIG_FILENAME}: check "${name}" has an empty or non-string reason`);
-  }
   return value as CheckConfig;
 }
 

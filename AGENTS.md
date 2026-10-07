@@ -103,9 +103,9 @@ directly — use `boundedRun` from `src/lib/bounded-subprocess.js` if you must s
 out), and register it in `src/registry.ts`. **Every check is default-on**
 (`defaultOn: true`) at best-practice settings, and reaches consumers on their next
 Dependabot bump with no YAML edit. A repo loosens one only as a written-down
-exception — the loosening plus a `reason` in its `.repo-hygiene.yml` section — so
-declare each of the check's laxer settings in its `loosenings` hook, and make a
-network-dependent check fail safe (`inconclusive`, never `error`).
+exception, with a comment in its `.repo-hygiene.yml` saying why, so give every
+opinionated rule a laxer setting, and make a network-dependent check fail safe
+(`inconclusive`, never `error`).
 
 ## Worktrees, PRs, and releases
 

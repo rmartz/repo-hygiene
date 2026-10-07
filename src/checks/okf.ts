@@ -1,7 +1,6 @@
 import matter from 'gray-matter';
 import type { Check, CheckConfig, Finding } from '../types.js';
 import { repoPathExists } from '../discovery.js';
-import { hasEntries } from '../exceptions.js';
 import { validateOptionalFields } from './okf-fields.js';
 
 /**
@@ -136,20 +135,6 @@ export const okfCheck: Check = {
   // Default-on at error: a repo whose docs/ has not adopted OKF relaxes it with
   // `severity: warn` or opts out with `enabled: false`.
   defaultOn: true,
-  // Widening `types` to a named vocabulary is configuration; `"*"` drops the
-  // vocabulary altogether. Exempting a type beyond the defaults from `resource`
-  // relaxes the resource rule for it.
-  loosenings: (settings) => {
-    const { types, resourceExemptTypes: rx } = settings;
-    const widensRx =
-      rx === '*' ||
-      (Array.isArray(rx) && rx.some((t) => !DEFAULT_RESOURCE_EXEMPT_TYPES.includes(t)));
-    return [
-      ...(types === '*' ? ['types: "*"'] : []),
-      ...(hasEntries(settings, 'exempt') ? ['exempt'] : []),
-      ...(widensRx ? ['resourceExemptTypes'] : []),
-    ];
-  },
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     // In --staged mode ctx.files.read reads the git index; repoPathExists probes

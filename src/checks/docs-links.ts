@@ -1,6 +1,5 @@
 import { repoPathExists } from '../discovery.js';
 import type { Check, CheckConfig, Finding } from '../types.js';
-import { hasEntries } from '../exceptions.js';
 import { collectAnchors } from './md-anchors.js';
 import { parseLinkTarget, resolveRel, scanLinks } from './md-links.js';
 
@@ -174,11 +173,6 @@ export const docsLinksCheck: Check = {
   // Default-on: a broken intra-repo link is never intentional, and the check
   // no-ops on a repo with no docs/ — safe to run on an arbitrary repo unconfigured.
   defaultOn: true,
-  loosenings: (settings) => [
-    ...(hasEntries(settings, 'exempt') ? ['exempt'] : []),
-    ...(settings.anchors === false ? ['anchors: false'] : []),
-    ...(hasEntries(settings, 'anchorExempt') ? ['anchorExempt'] : []),
-  ],
   async run(ctx) {
     const cfg = resolveConfig(ctx.settings);
     const exists = await repoPathExists(ctx.mode, { cwd: ctx.cwd });

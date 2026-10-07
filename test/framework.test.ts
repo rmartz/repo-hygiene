@@ -129,7 +129,7 @@ describe('runHygiene', () => {
     const registry = createRegistry([fakeCheck('a', [inconclusive('a'), err('a')])]);
     const result = await runHygiene(registry, {
       mode: '--check',
-      config: { checks: { a: { severity: 'warn', reason: 'ramping' } } },
+      config: { checks: { a: { severity: 'warn' } } },
     });
     expect(result.findings.map((f) => f.severity)).toEqual(['inconclusive', 'warn']);
     expect(result.exitCode).toBe(3);
@@ -186,7 +186,7 @@ describe('runHygiene', () => {
   it('downgrades a check to warn via config severity (the ramp) → exit 0', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')])]);
     const ramped = {
-      checks: { a: { severity: 'warn' as const, reason: 'working off a backlog' } },
+      checks: { a: { severity: 'warn' as const } },
     };
     const result = await runHygiene(registry, { mode: '--check', config: ramped });
     expect(result.findings[0]?.severity).toBe('warn');
@@ -203,7 +203,7 @@ describe('runHygiene', () => {
 
   it('skips a check disabled via config (enabled: false)', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')]), fakeCheck('b', [err('b')])]);
-    const cfg = { checks: { a: { enabled: false, reason: 'not applicable here' } } };
+    const cfg = { checks: { a: { enabled: false } } };
     const result = await runHygiene(registry, { mode: '--check', config: cfg });
     expect(result.findings.map((f) => f.check)).toEqual(['b']);
     expect(result.exitCode).toBe(1);
@@ -211,7 +211,7 @@ describe('runHygiene', () => {
 
   it('enabled: false wins even when the check is named explicitly', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')])]);
-    const cfg = { checks: { a: { enabled: false, reason: 'not applicable here' } } };
+    const cfg = { checks: { a: { enabled: false } } };
     const result = await runHygiene(registry, { mode: '--check', only: ['a'], config: cfg });
     expect(result.findings).toEqual([]);
     expect(result.exitCode).toBe(0);

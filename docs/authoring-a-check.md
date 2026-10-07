@@ -117,17 +117,17 @@ and the workflow's empty `checks` input resolve to.
 
 ## 4. Config and default-safety (`.repo-hygiene.yml`)
 
-The framework understands three keys in a check's config section: `severity`,
+The framework understands two keys in a check's config section: `severity`,
 which the runner applies uniformly to override every finding the check emits (the
 migration ramp — downgrade a whole check to `warn` while a backlog is worked off,
-then flip it back), `enabled`, and `reason`. **Every other key is yours**, read off
+then flip it back), and `enabled`. **Every other key is yours**, read off
 `ctx.settings` and validated by the check itself:
 
 ```yaml
 checks:
   my-new-check:
+    # Exception: working off the backlog from adopting this check.
     severity: warn # framework-applied override (optional)
-    reason: Working off the backlog from adopting this check.
     overrides: # check-defined vocabulary, parsed by your check
       - glob: 'docs/**/*.md'
         max: 400
@@ -147,11 +147,9 @@ to take. What it must not do is fail one with no way out but a code change:
 - **Every finding must be relaxable** from `.repo-hygiene.yml`. `severity: warn`
   and `enabled: false` come from the framework; an opinionated option (a cap, a
   vocabulary, a rule toggle) needs its own laxer setting.
-- **Declare every laxer setting in `loosenings`.** It returns the settings in a
-  section that relax the check (`['anchors: false']`); the runner then refuses
-  that section unless it carries a `reason`. Configuration that only adapts the
-  check to a repo's layout (a docs root, an index file name) is not a loosening.
-  Tightening never needs a reason.
+- **Document which settings loosen it** on the check's page, so a consumer knows
+  which ones are exceptions to explain. Configuration that only adapts the check
+  to a repo's layout (a docs root, an index file name) is not an exception.
 - **A check that needs the network fails safe**: a transient failure is
   `inconclusive`, never an `error` (see `action-pin-tags`).
 - **A check that needs repo-specific input** (like a blocklist) no-ops when
@@ -301,8 +299,8 @@ import { bannedPhrasesCheck } from './checks/banned-phrases.js';
 ```
 
 **Configure it** (a consumer's `.repo-hygiene.yml`, step 4) — with no section the
-check stays silent; a repo puts it to work by listing phrases (tightening, so no
-`reason` is needed):
+check stays silent; a repo puts it to work by listing phrases (tightening, so
+there's no exception to explain):
 
 ```yaml
 checks:
@@ -359,5 +357,4 @@ describe('banned-phrases', () => {
 ```
 
 That is the whole arc: a pure function you unit-test, a thin adapter, one registry
-line, a config section, and a test — no framework plumbing to touch. It has no
-laxer setting, so it declares no `loosenings`.
+line, a config section, and a test — no framework plumbing to touch.

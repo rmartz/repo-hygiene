@@ -101,7 +101,8 @@ from the package's registry:
   `.repo-hygiene.yml` (section 3) rather than dropping one from the list.
 - **Set `checks: <names>`** → runs **exactly** those checks. This pins the set:
   you manage the list, and you forfeit auto-join for future default-on checks. To
-  drop one check, prefer `enabled: false` (with a `reason`) in its config section.
+  drop one check, prefer `enabled: false` (with a comment saying why) in its config
+  section.
 
 ```yaml
 - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
@@ -117,11 +118,11 @@ check is on by default, and how exceptions work, is documented in
 
 ## 3. Configure checks in `.repo-hygiene.yml`
 
-Per-repo settings live under `checks.<name>`. The framework understands three keys
-everywhere — `severity` (see the ramp below), `enabled`, and `reason` — and every
-other key is defined by the owning check. **Every loosening needs a `reason`** in
-the same section, or the run fails with a config error (exit `2`); keys that
-loosen are marked _(exception)_ below:
+Per-repo settings live under `checks.<name>`. The framework understands two keys
+everywhere — `severity` (see the ramp below) and `enabled` — and every other key
+is defined by the owning check. Keys that loosen a check are marked
+_(exception)_ below; **explain each exception in a comment beside it** (or in the
+commit message that adds it):
 
 | Check              | Default | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -134,7 +135,7 @@ loosen are marked _(exception)_ below:
 | `okf`              | on      | `types` (list, or `"*"` for any non-empty type — an exception); `roots`; `exempt` _(exception)_; `resourceExemptTypes` (list, or `"*"` — no type needs a resource; a set one is still validated; anything beyond `[Design, Subsystem]` is an exception). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
 | `okf-index`        | on      | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy, an exception); `noUpwardLinks`; `noSiblingLinks`                                                                                                                                        |
 | `file-caps`        | on      | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` _(exception)_ (bytes accept `40KB`-style sizes); `mode` (anything but `strict` is an exception); `base`                                                                                                                                                    |
-| _(any check)_      |         | `severity: warn \| error` — overrides every finding this check emits (`warn`, the migration ramp, is an exception); `enabled: false` _(exception)_; `reason`                                                                                                                                                                   |
+| _(any check)_      |         | `severity: warn \| error` — overrides every finding this check emits (`warn`, the migration ramp, is an exception); `enabled: false` _(exception)_                                                                                                                                                                             |
 
 That table is the **complete check roster** — the names you can pass in `checks:`.
 The `src/checks/` directory also contains `md-links` and `okf-fields`, but these
@@ -149,26 +150,26 @@ every docs page is reachable from a root `index.md`. Enable `okf-index` (with yo
 root index rather than nested per-directory indexes — set `nestedIndexes: false`.
 
 Every check runs at its recommended settings with no config, so most keys exist to
-**relax** a default for a repo that needs an exception — and each such section
-says why. A representative config:
+**relax** a default for a repo that needs an exception — and each one says why. A
+representative config:
 
 ```yaml
 # .repo-hygiene.yml
 checks:
   docs-links:
     roots: [docs, guides]
+    # Exception: GitHub's slug for this heading differs from the one we compute.
     anchorExempt: ['README.md#quick-start']
-    reason: GitHub's slug for this heading differs from the one we compute.
   okf:
     types: [Skill, Script, Library, Design, Reference]
+    # Exception: Reference pages are concept guides with no single source file.
     resourceExemptTypes: [Design, Reference]
-    reason: Reference pages are concept guides with no single source file.
   file-caps:
+    # Exception: generated API clients run long; split tracked in #123.
     overrides:
       - glob: 'src/**/*.ts'
         lines: { warn: 300, error: 400 }
         bytes: { warn: 16KB, error: 24KB }
-    reason: Generated API clients run long; split tracked in #123.
 ```
 
 **The migration ramp (`severity`).** Adopting an opinionated check against an
@@ -179,8 +180,8 @@ remove it (or set `error`) once the tree is clean:
 ```yaml
 checks:
   okf:
-    severity: warn # report, don't block — for now
-    reason: Adopting OKF; 40 legacy pages left to migrate.
+    # Exception: adopting OKF; 40 legacy pages left to migrate.
+    severity: warn
 ```
 
 ## 4. Adopt `file-caps` (the size-cap ramp)
@@ -236,14 +237,11 @@ after files shrink.
 - **The job is green but a check you configured never fires.** If you set
   `checks:` at all, it is the _exact_ run list — confirm the check is in it, not
   just in `.repo-hygiene.yml`.
-- **The job fails with "loosens its recommended settings … without a reason".**
-  A section relaxes a check (`severity: warn`, `enabled: false`, or a laxer
-  option) but doesn't say why. Add a `reason:` to that section.
 - **The job fails after a major-version bump.** Defaults only get stricter in a
   major release, so the check is finding a real backlog. Take an exception in
   `.repo-hygiene.yml` the same day — `severity: warn` (section 3), a laxer option
   (`anchors: false`, `wrapper: false`, a `file-caps` override), `mode: ratchet`
-  for `file-caps`, or `enabled: false`, each with a `reason` — and fix the backlog
+  for `file-caps`, or `enabled: false`, each with a comment saying why — and fix the backlog
   on your own schedule. The
   [distribution contract](distribution-contract.md#exceptions) lists them.
 - **`install` fails to find the package.** The package is public on npmjs and

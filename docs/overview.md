@@ -39,7 +39,7 @@ repo-hygiene --update-baseline [--check] [--config <path>]
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0`  | Clean, or warn-only (the migration-ramp signal).                                                                                                                                            |
 | `1`  | **Failure**: an `error` finding, meaning the run detected an issue in the change that needs fixing.                                                                                         |
-| `2`  | Usage error: an unknown check, a malformed config, or a loosening with no `reason`.                                                                                                         |
+| `2`  | Usage error: an unknown check or a malformed config.                                                                                                                                        |
 | `3`  | **Inconclusive**: no `error`, but a check couldn't reach a verdict because of an external transient error (rate limit, timeout, network). Re-run it; there is nothing to fix in the change. |
 
 A failure outranks an inconclusive result: if one check finds an `error` while
@@ -50,14 +50,13 @@ reports an exit-`3` run as cancelled rather than failed.
 ## Configuration
 
 Per-repo settings live in `.repo-hygiene.yml` under `checks.<name>`. The framework
-understands three keys in any check's section: `severity`, which the runner applies
+understands two keys in any check's section: `severity`, which the runner applies
 uniformly to override every finding that check emits (downgrade a whole check to
-`warn` while a backlog is worked off, then flip it back); `enabled`, which when set
-to `false` skips the check entirely; and `reason`, which every loosening (`severity:
-warn`, `enabled: false`, or a check's laxer option) must carry — the runner refuses
-an unexplained one (see [exceptions](distribution-contract.md#exceptions)). Every
-other key is the check's own; see each [check page](checks/index.md) for its
-vocabulary.
+`warn` while a backlog is worked off, then flip it back); and `enabled`, which when
+set to `false` skips the check entirely. Every other key is the check's own; see
+each [check page](checks/index.md) for its vocabulary. Any setting that loosens a
+check is an exception, explained in a comment beside it (see
+[exceptions](distribution-contract.md#exceptions)).
 
 ## How the pieces fit
 

@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, dependencies]
 
 # `package-pins`
 
-**Default:** on · **Config:** none · **Exceptions** (each needs a `reason`): `severity: warn`, `enabled: false`
+**Default:** on · **Config:** none · **Exceptions** (explain each in a comment): `severity: warn`, `enabled: false`
 
 The npm analog of [`action-pins`](action-pins.md): every registry dependency in a
 `package.json` must be pinned to a full `major.minor.patch` base, keeping the
@@ -32,5 +32,5 @@ shorthand.
 Abbreviated ranges hide Dependabot bumps from review in every npm repo, so the
 rule is fleet-wide. The check needs no config, and a repo with no `package.json`
 yields no findings. A repo that deliberately uses abbreviated ranges takes an
-exception with `enabled: false` and a `reason` (see the
+exception with `enabled: false` and a comment saying why (see the
 [distribution contract](../distribution-contract.md#exceptions)).

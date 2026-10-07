@@ -64,14 +64,14 @@ Both files are seeded once by [`@rmartz/bootstrap`](https://github.com/rmartz/ai
 check auto-joins on your next Dependabot bump with no edit here. Every check runs
 at its recommended settings and enforces at `error`. A repo that needs laxer rules
 takes an exception per check in its `.repo-hygiene.yml` — `severity: warn`, a
-laxer option, or `enabled: false`, **plus a `reason`** saying why — rather than
+laxer option, or `enabled: false`, **with a comment saying why** — rather than
 trimming the list:
 
 ```yaml
 checks:
   action-pin-tags:
+    # Exception: CI runs on an air-gapped runner with no route to github.com.
     enabled: false
-    reason: CI runs on an air-gapped runner with no route to github.com.
 ```
 
 Per-check configuration lives in the consuming repo's `.repo-hygiene.yml` — see

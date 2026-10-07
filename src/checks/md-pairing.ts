@@ -116,7 +116,6 @@ export const mdPairingCheck: Check = {
   // Default-on at error, wrapper rule included: a repo with legacy directive
   // files relaxes it with `severity: warn`, `wrapper: false`, or `enabled: false`.
   defaultOn: true,
-  loosenings: (settings) => (settings.wrapper === false ? ['wrapper: false'] : []),
   async run(ctx) {
     const wrapper = resolveWrapper(ctx.settings);
     const modes = await trackedFileModes({ cwd: ctx.cwd });

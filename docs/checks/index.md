@@ -3,8 +3,8 @@
 The checks `@rmartz/repo-hygiene` ships, each an independent module in the
 registry. **Every check is default-on**: it runs with no configuration, at
 `error` severity, with recommended settings. A repo loosens one (`severity:
-warn`, a laxer option, or `enabled: false`) only as an exception with a written
-`reason`. See the [distribution contract](../distribution-contract.md#exceptions)
+warn`, a laxer option, or `enabled: false`) only as an exception, with a comment
+saying why. See the [distribution contract](../distribution-contract.md#exceptions)
 for how exceptions work, the [overview](../overview.md) for how to run the
 checks, and [authoring a check](../authoring-a-check.md) to add one.
 
