@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, supply-chain, dependabot]
 
 # `action-pin-tags`
 
-**Default:** on · **Config:** none · **Network:** yes · **Opt out:** `enabled: false` (with a comment saying why)
+**Default:** on · **Config:** none · **Network:** yes · **Exceptions** (explain each in a comment): `severity: warn`, `enabled: false`
 
 [`action-pins`](action-pins.md) proves a pin's version comment is a well-formed
 full semver. It cannot prove the comment names a tag that **exists**. A
@@ -56,12 +56,12 @@ argv. Public upstreams need no token.
 
 ## Why a separate check
 
-[`action-pins`](action-pins.md) is tree-only: `git ls-files` plus file reads,
-with no history and no network. This check makes one network call per upstream,
-so it is a separate check that fails safe (never an `error` on a network it
-can't reach), and `action-pins` stays offline and honest about its scope. Both
-run by default; a repo that can't reach GitHub takes an exception with
-`enabled: false` and a comment saying why (see the
+[`action-pins`](action-pins.md) is tree-only for SHA pins: `git ls-files` plus
+file reads, with no history and no network. This check makes one network call per
+upstream, so it is a separate check that fails safe (never an `error` on a
+network it can't reach), and `action-pins` stays offline for SHA pins and honest
+about its scope. Both run by default; a repo that can't reach GitHub takes an
+exception with `enabled: false` and a comment saying why (see the
 [distribution contract](../distribution-contract.md#exceptions)).
 
 ## A note on this repo's tags

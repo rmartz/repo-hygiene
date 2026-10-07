@@ -23,7 +23,8 @@ repo-hygiene --update-baseline [--check] [--config <path>]
 
 - **No check name** runs the registry's **default-on** set (every built-in check,
   at its recommended settings — the same set the Action's empty `checks` default
-  resolves to).
+  resolves to). Most checks are offline; `action-pin-tags` and, for a first-party
+  tag pin, `action-pins` use the network.
 - **`--all`** runs every registered check.
 - **Naming one or more** checks runs just those, with independent per-check
   statuses (`repo-hygiene okf docs-links --check`).

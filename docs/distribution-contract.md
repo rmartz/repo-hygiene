@@ -75,8 +75,9 @@ What counts as loosening:
 - **A laxer option**: `exempt` / `anchors: false` / `anchorExempt`
   (`docs-links`), `wrapper: false` (`md-pairing`), `types: "*"` / `exempt` / a
   `resourceExemptTypes` beyond the defaults (`okf`), `nestedIndexes: false`
-  (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`).
-  Each check's page lists its own.
+  (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`),
+  `tagPinOwners` naming owners beyond the repo's own (`action-pins`). Each
+  check's page lists its own.
 
 Configuration that only adapts a check to the repo's layout (`roots`,
 `indexName`, a named `types` vocabulary, a custom `wrapper` file) is not an
@@ -93,3 +94,12 @@ inconclusive (exit `3`), and an upstream that is definitively unreadable is a
 extends, rather than adding a network flag to that check, so the offline check
 stays honest about its scope and a repo can take an exception for one without the
 other.
+
+[`action-pins`](checks/action-pins.md) is the one check that stays offline for
+SHA pins yet looks up a release through the GitHub API, and only for an exact-tag
+pin by an allowlisted first-party owner. Without the lookup, that ref would fail
+anyway. The lookup can only turn such a ref from failing to passing, after it
+confirms the release is immutable, so it never adds a failure to an unconfigured
+consumer. A repo that SHA-pins everything never touches the network. The
+verification lives in `action-pins` itself, not in a separate network check,
+because accepting the tag offline would let a mutable release through.
