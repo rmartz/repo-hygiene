@@ -60,20 +60,18 @@ Both files are seeded once by [`@rmartz/bootstrap`](https://github.com/rmartz/ai
 
 ### Choosing checks
 
-**Omit the `checks` input** and the Action runs the registry's default-on set —
-and a newly-added default-on check auto-joins on your next Dependabot bump with no
-edit here. The defaults are strict: every default-on check enforces at `error`.
-A repo that intentionally needs laxer rules relaxes them per check in its
-`.repo-hygiene.yml` (`severity: warn`, a laxer option, or `enabled: false`)
-rather than trimming the list. To add an opt-in check (`action-pin-tags`, `private-repo-refs`), name the
-checks explicitly (this becomes the _exact_ run list, so include the defaults
-you still want):
+**Omit the `checks` input** and the Action runs every check — and a newly-added
+check auto-joins on your next Dependabot bump with no edit here. Every check runs
+at its recommended settings and enforces at `error`. A repo that needs laxer rules
+takes an exception per check in its `.repo-hygiene.yml` — `severity: warn`, a
+laxer option, or `enabled: false`, **with a comment saying why** — rather than
+trimming the list:
 
 ```yaml
-- uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
-  with:
-    checks: conflict-markers action-pins package-pins docs-links md-pairing okf okf-index file-caps action-pin-tags
-    config: .repo-hygiene.yml
+checks:
+  action-pin-tags:
+    # Exception: CI runs on an air-gapped runner with no route to github.com.
+    enabled: false
 ```
 
 Per-check configuration lives in the consuming repo's `.repo-hygiene.yml` — see
@@ -82,7 +80,8 @@ the [consumer guide](docs/consuming.md) for the full reference.
 ## Checks
 
 `conflict-markers`, `action-pins`, `action-pin-tags`, `package-pins`, `docs-links`, `md-links`,
-`md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps`, `private-repo-refs` — see
+`md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps`, `actionlint`,
+`private-repo-refs` — see
 [docs/checks/](docs/checks/index.md).
 
 ## Requirements

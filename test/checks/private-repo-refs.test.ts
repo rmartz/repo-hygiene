@@ -245,9 +245,9 @@ describe('excludes CHANGELOG.md by default, with configurable exclusions', () =>
 });
 
 describe('registration', () => {
-  it('is registered and opt-in', () => {
+  it('is registered and default-on', () => {
     const registry = createRegistry(builtinChecks());
     expect(registry.get('private-repo-refs')).toBe(privateRepoRefsCheck);
-    expect(registry.defaultNames()).not.toContain('private-repo-refs');
+    expect(registry.defaultNames()).toContain('private-repo-refs');
   });
 });

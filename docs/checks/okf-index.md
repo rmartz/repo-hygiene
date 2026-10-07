@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, docs, okf]
 
 # `okf-index`
 
-**Default:** on · **Config:** `roots`, `indexName`, `nestedIndexes`, `noUpwardLinks`, `noSiblingLinks` · **Opt out:** `enabled: false`
+**Default:** on · **Config:** `roots`, `indexName`, `nestedIndexes`, `noUpwardLinks`, `noSiblingLinks` · **Exceptions** (explain each in a comment): `nestedIndexes: false`, `severity: warn`, `enabled: false`
 
 Default-on at `error` severity (like [`okf`](okf.md)). A repo whose `docs/` isn't
 an OKF bundle yet relaxes it with `severity: warn`, or turns it off with

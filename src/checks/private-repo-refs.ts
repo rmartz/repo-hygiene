@@ -18,7 +18,8 @@ import { InconclusiveError } from '../outcome.js';
  * other lookup failure (rate limit, 5xx, timeout, offline) is transient and makes
  * the affected references inconclusive, never a failure.
  *
- * Opt-in only: it makes a network call per referenced repo.
+ * Default-on like every check, though it calls the GitHub API: lookups fail safe
+ * (`inconclusive`, never `error`), and it does nothing on a private repo.
  */
 
 const NAME = 'private-repo-refs';
@@ -150,8 +151,10 @@ interface Ref {
 export const privateRepoRefsCheck: Check = {
   name: NAME,
   description: 'A public repo references no private repo in the same account (network).',
-  // Never default-on: it calls the GitHub API per referenced repo, which the
-  // default suite's offline, tree-only cost model deliberately excludes.
+  // Default-on like every check, though it calls the GitHub API per referenced
+  // repo: a transient lookup failure is inconclusive, never a failure, so it is
+  // safe on any consumer.
+  defaultOn: true,
   async run(ctx) {
     const settings = parseSettings(ctx.settings);
     const self = await resolveRepository(settings.repository, ctx.env, ctx.cwd);

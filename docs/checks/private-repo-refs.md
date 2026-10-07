@@ -1,15 +1,16 @@
 ---
 type: Library
 title: The private-repo-refs check
-description: 'Opt-in, network-dependent check: on a public repo, flags any reference to a private repo in the same account.'
+description: 'Default-on, network-dependent check: on a public repo, flags any reference to a private repo in the same account.'
 resource: src/checks/private-repo-refs.ts
 tags: [hygiene, ci, checks, security]
 ---
 
 # `private-repo-refs`
 
-**Default:** opt-in (never default-on) · **Config:** `exclude`, `repository` ·
-**Network:** yes
+**Default:** on · **Config:** `exclude`, `repository` · **Network:** yes ·
+**Exceptions** (explain each in a comment): `exclude`, `severity: warn`,
+`enabled: false`
 
 ## Why the direction matters
 
@@ -57,26 +58,33 @@ In GitHub Actions, the default `GITHUB_TOKEN` can only see the repo it runs in.
 Every other private repo therefore returns 404 and is flagged, which is the
 intended result. A public repo is visible with any token.
 
+A repo that doesn't exist also returns 404, so a made-up name under your own
+account (a test fixture like `owner/x`) is flagged too. Give fixtures a
+placeholder owner such as `acme` or `octo` instead.
+
 ## Config
 
 ```yaml
 checks:
   private-repo-refs:
+    # Exception: docs/history/ is an archived record we don't rewrite.
     exclude: ['docs/history/**'] # extra globs to skip, added to the default
     repository: owner/repo # override the repo under test (rarely needed)
 ```
 
-- `exclude`: globs of paths to skip. They are **added to** the built-in
-  `**/CHANGELOG.md`. A changelog is generated and records history, so it's always
-  excluded.
+- `exclude` _(exception)_: globs of paths to skip. They are **added to** the
+  built-in `**/CHANGELOG.md`. A changelog is generated and records history, so
+  it's always excluded.
 - `repository`: the `owner/repo` to check, for runs outside Actions where the
   `origin` remote doesn't point at it.
 
-## Why opt-in
+## Why default-on
 
-The check calls the GitHub API once per referenced repo. The default suite is
-offline and tree-only (see the
-[distribution contract](../distribution-contract.md)), so this check runs only
-when a repo names it in its `checks` input. When you first enable it on a repo
-that already has references, it lists all of them. Fix them, or temporarily set
-`severity: warn` while you work through the list.
+The check calls the GitHub API once per referenced repo, but it fails safe: a
+transient lookup failure is `inconclusive`, never an `error`, and on a private
+repo it does nothing. So, like every check, it runs by default (see the
+[distribution contract](../distribution-contract.md#exceptions)). On a public
+repo that already has references, the first run lists all of them. Fix them, or
+take a temporary `severity: warn` exception, with a comment saying why, while you
+work through the list. A repo that can't reach the GitHub API takes an exception
+with `enabled: false` and a comment saying why.

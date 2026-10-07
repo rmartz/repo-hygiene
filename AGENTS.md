@@ -31,10 +31,9 @@ task:
 
 ## Repository conformance
 
-This repo is held to the shared
-[repository checklist](https://github.com/rmartz/ai/blob/main/docs/guidance/repository-checklist.md),
-and it **self-manages** its own config: fix conformance gaps directly here, in a
-PR. Bootstrap (`ai-ensure-*`) is a one-time new-repo **starter**, not an ongoing
+This repo is held to the owner's shared repository checklist (kept in a private
+guidance repo, so it is not linked from this public one), and it
+**self-manages** its own config: fix conformance gaps directly here, in a PR. Bootstrap (`ai-ensure-*`) is a one-time new-repo **starter**, not an ongoing
 manager — do not defer a fix to a bootstrap re-run, and do not treat a `.github/`
 file as off-limits just because bootstrap once seeded it.
 
@@ -100,10 +99,12 @@ Most are enforced by eslint / the hygiene checks; the intent:
 See the authoring guide in [docs/authoring-a-check.md](docs/authoring-a-check.md): implement
 the `Check` contract, read files through the resolved `FileSet` (never call `git`
 directly — use `boundedRun` from `src/lib/bounded-subprocess.js` if you must shell
-out), register it in `src/registry.ts`, and set `defaultOn: true` **only** for a
-check that is safe to run on an arbitrary repo with no config. A new default-on
-check reaches consumers on their next Dependabot bump with no YAML edit, so the
-default-safety bar is strict.
+out), and register it in `src/registry.ts`. **Every check is default-on**
+(`defaultOn: true`) at best-practice settings, and reaches consumers on their next
+Dependabot bump with no YAML edit. A repo loosens one only as a written-down
+exception, with a comment in its `.repo-hygiene.yml` saying why, so give every
+opinionated rule a laxer setting, and make a network-dependent check fail safe
+(`inconclusive`, never `error`).
 
 ## Worktrees, PRs, and releases
 

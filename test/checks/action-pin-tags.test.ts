@@ -86,10 +86,9 @@ describe('resolveTag', () => {
 });
 
 describe('action-pin-tags check', () => {
-  it('is opt-in, registered, and never default-on', () => {
-    expect(actionPinTagsCheck.defaultOn).toBeFalsy();
+  it('is registered and default-on', () => {
     expect(builtinChecks()).toContain(actionPinTagsCheck);
-    expect(createRegistry().defaultNames()).not.toContain('action-pin-tags');
+    expect(createRegistry().defaultNames()).toContain('action-pin-tags');
   });
 
   it('passes a pin whose comment names a tag at the pinned SHA', async () => {

@@ -10,10 +10,11 @@ import { parseUsesLine } from './action-pins.js';
  * check goes red). This check lists each upstream's tags with `git ls-remote` and
  * flags a comment that names no tag, or names a tag at a different commit.
  *
- * It is deliberately a separate, never-default-on check so `action-pins` stays
- * offline for SHA pins (it goes online only to confirm a first-party tag pin):
- * only a repo that names `action-pin-tags` pays a network call per upstream. An upstream that cannot be listed is never a failure, since it says
- * nothing about the change: a definitive "not found" or auth refusal (deleted,
+ * It is deliberately a separate check so `action-pins` stays offline for SHA
+ * pins (it goes online only to confirm a first-party tag pin), and a repo that
+ * can't reach GitHub can take an exception for this check alone. It is
+ * default-on like every check because it fails safe: an upstream that cannot be
+ * listed is never a failure, since it says nothing about the change: a definitive "not found" or auth refusal (deleted,
  * renamed, or private without a token) yields a `warn` and is skipped, and any
  * other failure (rate limit, timeout, network error) makes the run inconclusive.
  */
@@ -142,8 +143,10 @@ interface Pin {
 export const actionPinTagsCheck: Check = {
   name: NAME,
   description: 'GitHub Actions pin comments name an upstream tag at the pinned SHA (network).',
-  // Never default-on: it makes a network call per upstream, which the default
-  // suite's offline-for-SHA-pins cost model deliberately excludes.
+  // Default-on like every check, though it lists each upstream's tags over the
+  // network: an unreachable upstream is inconclusive or warn-and-skip, never a
+  // failure, so it is safe on any consumer.
+  defaultOn: true,
   async run(ctx) {
     const pins: Pin[] = [];
     for (const path of ctx.files.paths) {

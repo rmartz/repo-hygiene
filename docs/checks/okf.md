@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, docs, okf]
 
 # `okf`
 
-**Default:** on · **Config:** `types`, `roots`, `exempt`, `resourceExemptTypes` · **Opt out:** `enabled: false`
+**Default:** on · **Config:** `types`, `roots`, `exempt`, `resourceExemptTypes` · **Exceptions** (explain each in a comment): `types: "*"`, `exempt`, a `resourceExemptTypes` beyond `[Design, Subsystem]`, `severity: warn`, `enabled: false`
 
 Default-on at `error` severity. A repo that has `docs/` but hasn't adopted OKF
 yet relaxes it with `severity: warn` while it migrates, or turns it off with

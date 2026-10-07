@@ -13,8 +13,8 @@ Documentation for `@rmartz/repo-hygiene`, written in
   configuration.
 - [Checks](checks/index.md) — one page per check: what each flags, its config, and
   whether it is default-on.
-- [The distribution contract](distribution-contract.md) — why a check must be safe
-  with no config, and the `defaultOn` flag.
+- [The distribution contract](distribution-contract.md) — every check on by
+  default at recommended settings, and loosening one as a reasoned exception.
 - [How a check reaches consumers](consumer-path.md) — release → Dependabot →
   pick-up.
 - [Authoring a check](authoring-a-check.md) — the `Check` contract, in five steps,

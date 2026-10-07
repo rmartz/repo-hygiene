@@ -1,14 +1,14 @@
 ---
 type: Library
 title: The action-pin-tags check
-description: 'Opt-in, network-dependent companion to action-pins: flags a pin comment that names no upstream tag, or a tag at a different commit than the pinned SHA.'
+description: 'Default-on, network-dependent companion to action-pins: flags a pin comment that names no upstream tag, or a tag at a different commit than the pinned SHA.'
 resource: src/checks/action-pin-tags.ts
 tags: [hygiene, ci, checks, supply-chain, dependabot]
 ---
 
 # `action-pin-tags`
 
-**Default:** opt-in (never default-on) · **Config:** none · **Network:** yes
+**Default:** on · **Config:** none · **Network:** yes · **Exceptions** (explain each in a comment): `severity: warn`, `enabled: false`
 
 [`action-pins`](action-pins.md) proves a pin's version comment is a well-formed
 full semver. It cannot prove the comment names a tag that **exists**. A
@@ -54,14 +54,15 @@ environment. The token is passed to git as an HTTP header through `GIT_CONFIG_*`
 env vars, the same mechanism `actions/checkout` uses, so it never appears in
 argv. Public upstreams need no token.
 
-## Why opt-in
+## Why a separate check
 
-The default suite is tree-only: `git ls-files` plus file reads, with no history
-and no network. That keeps it cheap and lets it run on any consumer with
-`contents: read`. This check makes one network call per upstream, so it is a
-separate check that is never default-on, and `action-pins` stays offline for SHA
-pins and honest about its scope. Name it in your `checks` input to opt in (see the
-[distribution contract](../distribution-contract.md)).
+[`action-pins`](action-pins.md) is tree-only for SHA pins: `git ls-files` plus
+file reads, with no history and no network. This check makes one network call per
+upstream, so it is a separate check that fails safe (never an `error` on a
+network it can't reach), and `action-pins` stays offline for SHA pins and honest
+about its scope. Both run by default; a repo that can't reach GitHub takes an
+exception with `enabled: false` and a comment saying why (see the
+[distribution contract](../distribution-contract.md#exceptions)).
 
 ## A note on this repo's tags
 
