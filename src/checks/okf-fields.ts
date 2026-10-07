@@ -9,14 +9,13 @@
  * `checkSources` / `checkResourceObject` helpers).
  */
 
+import { isPlainObject } from '../lib/is-plain-object.js';
+
 const STATUSES = ['draft', 'stable', 'deprecated'];
 // ISO-8601 datetime with an explicit offset, e.g. 2026-06-30T14:00:00Z.
 const ISO_8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 // Actor convention: <producer>/<version>, human:<id>, or process:<id>.
 const ACTOR = /^(?:human:\S.*|process:\S.*|[^\s:/]+\/\S+)$/;
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function checkTimestamp(errors: string[], label: string, value: unknown): void {
   if (value !== undefined && !(typeof value === 'string' && ISO_8601.test(value))) {
