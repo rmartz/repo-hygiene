@@ -1,4 +1,5 @@
 import picomatch from 'picomatch';
+import { isPlainObject } from '../lib/is-plain-object.js';
 import type { CheckConfig } from '../types.js';
 
 /**
@@ -26,9 +27,6 @@ export interface ActionlintSettings {
   /** Per-glob message ignores, mirroring actionlint's `paths.<glob>.ignore`. */
   ignore: IgnoreRule[];
 }
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function parseIgnore(raw: unknown): IgnoreRule[] {
   if (raw === undefined) return [];

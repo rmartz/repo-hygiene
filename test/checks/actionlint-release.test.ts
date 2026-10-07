@@ -96,6 +96,14 @@ describe('installActionlint', () => {
     await expect(installActionlint(linux)).rejects.toBeInstanceOf(InconclusiveError);
   });
 
+  it('makes a failed or stalled body read inconclusive', async () => {
+    const res = new Response(archive, { status: 200 });
+    vi.spyOn(res, 'arrayBuffer').mockRejectedValueOnce(new TypeError('terminated'));
+    fetchMock.mockResolvedValueOnce(res);
+    await expect(installActionlint(linux)).rejects.toBeInstanceOf(InconclusiveError);
+    expect(boundedRun).not.toHaveBeenCalled();
+  });
+
   it('treats a missing release as a real fault', async () => {
     respond(404);
     const err = await installActionlint(linux).catch((e: unknown) => e);

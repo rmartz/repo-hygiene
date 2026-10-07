@@ -23,12 +23,15 @@ export function sha256Hex(data: Uint8Array): string {
 }
 
 async function download(url: string): Promise<Uint8Array> {
+  const inconclusive = (err: unknown) => {
+    const reason = err instanceof Error ? err.message : String(err);
+    return new InconclusiveError(`could not download actionlint (${reason}) — re-run`);
+  };
   let res: Response;
   try {
     res = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    throw new InconclusiveError(`could not download actionlint (${reason}) — re-run`);
+    throw inconclusive(err);
   }
   // A rate limit or server error says nothing about the change; anything else
   // (a 404 on a pinned release) is a real fault that a re-run will not fix.
@@ -36,7 +39,13 @@ async function download(url: string): Promise<Uint8Array> {
     throw new InconclusiveError(`could not download actionlint (HTTP ${res.status}) — re-run`);
   }
   if (!res.ok) throw new Error(`actionlint: downloading ${url} failed with HTTP ${res.status}`);
-  return new Uint8Array(await res.arrayBuffer());
+  // The timeout signal also covers the body, so a dropped or stalled connection
+  // after the headers arrive rejects here rather than in `fetch`.
+  try {
+    return new Uint8Array(await res.arrayBuffer());
+  } catch (err) {
+    throw inconclusive(err);
+  }
 }
 
 /**
