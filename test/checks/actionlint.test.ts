@@ -196,15 +196,6 @@ describe('tightening and exceptions', () => {
     expect(actionlintCall()?.[2].env.SHELLCHECK_OPTS).toBe('-S error');
   });
 
-  it.each([
-    [{ shellcheck: false }, ['shellcheck: false']],
-    [{ shellcheckSeverity: 'error' }, ['shellcheckSeverity: error']],
-    [{ ignore: { '**': ['x'] } }, ['ignore']],
-    [{ shellcheckSeverity: 'style', shellcheck: true, ignore: {} }, []],
-  ])('declares %j as loosening %j', (settings, expected) => {
-    expect(actionlintCheck.loosenings?.(settings)).toEqual(expected);
-  });
-
   it('ignore drops matching messages only for the paths its glob covers', async () => {
     queueRun([
       lintError('.github/workflows/release.yml', WORKFLOW_SHA),

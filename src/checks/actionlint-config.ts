@@ -7,8 +7,8 @@ import type { CheckConfig } from '../types.js';
  * ones: shellcheck runs over every `run:` block and reports warnings and errors
  * (its info and style notes are opinion, not defects), and only the known
  * actionlint false positives in {@link BUILTIN_IGNORES} are dropped. A repo may
- * tighten freely; loosening is an exception that needs a `reason` (see
- * {@link actionlintLoosenings}).
+ * tighten freely; `shellcheck: false`, `shellcheckSeverity: error`, and any
+ * `ignore` loosen it, so a repo explains each in a comment beside it.
  */
 
 export const SHELLCHECK_SEVERITIES = ['style', 'info', 'warning', 'error'] as const;
@@ -61,16 +61,6 @@ function parseIgnore(raw: unknown): IgnoreRule[] {
 export const BUILTIN_IGNORES: RegExp[] = [
   /^property "workflow_(?:ref|sha|repository|file_path)" is not defined in object type \{check_run_id: /,
 ];
-
-/** The section's settings that loosen the check, as the framework's exception rule names them. */
-export function actionlintLoosenings(settings: CheckConfig): string[] {
-  const { shellcheck, shellcheckSeverity, ignore } = settings;
-  return [
-    ...(shellcheck === false ? ['shellcheck: false'] : []),
-    ...(shellcheckSeverity === 'error' ? ['shellcheckSeverity: error'] : []),
-    ...(isPlainObject(ignore) && Object.keys(ignore).length > 0 ? ['ignore'] : []),
-  ];
-}
 
 /** Parse and validate the check's `.repo-hygiene.yml` section. */
 export function parseActionlintSettings(settings: CheckConfig): ActionlintSettings {

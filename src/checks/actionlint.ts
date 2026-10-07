@@ -4,7 +4,7 @@ import type { Check, Finding } from '../types.js';
 import { boundedRun } from '../lib/bounded-subprocess.js';
 import { InconclusiveError } from '../outcome.js';
 import { installActionlint } from './actionlint-binary.js';
-import { actionlintLoosenings, isIgnored, parseActionlintSettings } from './actionlint-config.js';
+import { isIgnored, parseActionlintSettings } from './actionlint-config.js';
 
 /**
  * Workflow linting with [actionlint](https://github.com/rhysd/actionlint) (#104):
@@ -65,7 +65,6 @@ export const actionlintCheck: Check = {
   name: NAME,
   description: 'Lints GitHub Actions workflows with a pinned actionlint, shellcheck included.',
   defaultOn: true,
-  loosenings: actionlintLoosenings,
   async run(ctx) {
     const settings = parseActionlintSettings(ctx.settings);
     const workflows = ctx.files.paths.filter(isWorkflowPath);
@@ -81,7 +80,7 @@ export const actionlintCheck: Check = {
       findings.push({
         check: NAME,
         message:
-          'shellcheck is not on PATH, so no `run:` block was shellchecked; install shellcheck, or take an exception with `shellcheck: false` and a `reason`',
+          'shellcheck is not on PATH, so no `run:` block was shellchecked; install shellcheck, or take an exception with `shellcheck: false` (and a comment saying why)',
         severity: 'error',
       });
       shellcheck = false;

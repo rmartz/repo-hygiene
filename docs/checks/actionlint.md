@@ -9,8 +9,8 @@ tags: [hygiene, ci, checks, github-actions, shellcheck, dependabot]
 # `actionlint`
 
 **Default:** on · **Config:** `shellcheck`, `shellcheckSeverity`, `ignore` ·
-**Network:** yes (downloads actionlint) · **Exceptions** (each needs a
-`reason`): `shellcheck: false`, `shellcheckSeverity: error`, `ignore`,
+**Network:** yes (downloads actionlint) · **Exceptions** (explain each in a
+comment): `shellcheck: false`, `shellcheckSeverity: error`, `ignore`,
 `severity: warn`, `enabled: false`
 
 [actionlint](https://github.com/rhysd/actionlint) type-checks `${{ }}`
@@ -46,7 +46,7 @@ With no config the check runs at the settings the fleet should hold itself to:
 - **shellcheck at `warning` and above.** Warnings and errors are defects; info
   and style notes (SC2086 quoting, SC2129 grouping, SC2016 on deliberate
   single-quoted backticks) are opinion, so they're left out by default. A repo
-  can tighten to `info` or `style` with no reason needed.
+  can tighten to `info` or `style` with nothing to explain.
 - **Known actionlint false positives dropped.** actionlint 1.7.12 doesn't model
   the `job.workflow_ref`, `job.workflow_sha`, `job.workflow_repository`, and
   `job.workflow_file_path` contexts GitHub added for reusable workflows, and
@@ -61,8 +61,8 @@ With no config the check runs at the settings the fleet should hold itself to:
 
 ## Exceptions
 
-A repo loosens the check only as a written-down exception: the setting plus a
-`reason` in the same section. The run refuses one without it (see
+A repo loosens the check only as an exception, explained in a comment beside
+the setting (or in the commit message that adds it; see
 [exceptions](../distribution-contract.md#exceptions)).
 
 ```yaml
@@ -72,17 +72,16 @@ checks:
     # each regex is matched against the finding's message, for the workflow
     # files the glob matches. `**` applies repo-wide.
     ignore:
+      # Exception: `uses: $/…` is the runner's self-repository syntax, which
+      # actionlint 1.7.12 does not parse.
       '.github/workflows/bot-automerge-reusable.yml':
         - 'invalid format because ref is missing'
-    reason: >-
-      `uses: $/…` is the runner's self-repository syntax, which actionlint
-      1.7.12 does not parse.
 ```
 
 The other exceptions are `shellcheckSeverity: error` (report only shellcheck
 errors), `shellcheck: false` (don't shellcheck `run:` blocks, or require
 shellcheck), and the framework's `severity: warn` / `enabled: false`. Tightening
-(`shellcheckSeverity: info` or `style`) needs no reason. A malformed key (an
+(`shellcheckSeverity: info` or `style`) needs no explanation. A malformed key (an
 unknown severity, a non-list ignore, an invalid regex) fails the run loudly.
 
 ### Fleet baseline (actionlint 1.7.12)
@@ -91,11 +90,11 @@ A baseline over every `rmartz` Actions repo found no real bugs. At the
 recommended settings all of it clears with no config, except one finding still
 to confirm:
 
-| Finding                                                                    | At recommended settings                                  |
-| -------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `property "workflow_repository"` / `"workflow_sha"` …                      | dropped by the built-in ignore                           |
-| SC2016 / SC2086 / SC2129 (info / style)                                    | below the `warning` floor                                |
-| `uses: $/…` "invalid format because ref is missing" (bot-automerge-action) | needs confirming; an `ignore` with a `reason` until then |
+| Finding                                                                    | At recommended settings                            |
+| -------------------------------------------------------------------------- | -------------------------------------------------- |
+| `property "workflow_repository"` / `"workflow_sha"` …                      | dropped by the built-in ignore                     |
+| SC2016 / SC2086 / SC2129 (info / style)                                    | below the `warning` floor                          |
+| `uses: $/…` "invalid format because ref is missing" (bot-automerge-action) | needs confirming; an explained `ignore` until then |
 
 ## The pin
 
