@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Metric } from './file-caps-config.js';
+import { isPlainObject } from '../lib/is-plain-object.js';
 
 /**
  * The file-caps migration ramp state. On adoption, every file already over its
@@ -27,9 +28,6 @@ export interface OverCap {
   metric: Metric;
   value: number;
 }
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Load the file-caps baseline from `<cwd>/.repo-hygiene-baseline.json`. Returns

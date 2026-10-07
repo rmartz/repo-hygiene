@@ -1,4 +1,5 @@
 import type { CheckConfig } from '../types.js';
+import { isPlainObject } from '../lib/is-plain-object.js';
 
 /**
  * Config vocabulary for the `file-caps` check: an ordered `overrides` list of
@@ -61,9 +62,6 @@ export function parseByteSize(value: unknown): number {
   }
   return Math.round(Number.parseFloat(m[1]) * mult);
 }
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function parseTier(raw: unknown, metric: Metric, glob: string): Tier | undefined {
   if (raw === undefined) return undefined;
