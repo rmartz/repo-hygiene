@@ -33,7 +33,7 @@ updates:
     commit-message:
       # Split by dependency type: production bumps ship to users, so they land as
       # `fix` and cut a patch release; dev-dependency bumps never reach the shipped
-      # artifact, so they stay release-less `chore`. See rmartz/ai#82.
+      # artifact, so they stay release-less `chore`.
       prefix: fix
       prefix-development: chore
       include: scope

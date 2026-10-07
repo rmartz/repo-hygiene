@@ -87,6 +87,7 @@ describe('registry defaultNames', () => {
       'md-pairing',
       'file-caps',
       'actionlint',
+      'private-repo-refs',
     ]);
   });
 

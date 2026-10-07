@@ -13,6 +13,7 @@ export * from './checks/md-links.js';
 export * from './checks/docs-links.js';
 export * from './checks/action-pins.js';
 export * from './checks/action-pin-tags.js';
+export * from './checks/private-repo-refs.js';
 export * from './checks/package-pins.js';
 export * from './checks/md-pairing.js';
 export * from './checks/file-caps.js';

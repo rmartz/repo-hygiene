@@ -77,7 +77,8 @@ What counts as loosening:
   `resourceExemptTypes` beyond the defaults (`okf`), `nestedIndexes: false`
   (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`),
   `tagPinOwners` naming owners beyond the repo's own (`action-pins`),
-  `shellcheck: false` / `shellcheckSeverity: error` / `ignore` (`actionlint`).
+  `shellcheck: false` / `shellcheckSeverity: error` / `ignore` (`actionlint`),
+  `exclude` (`private-repo-refs`).
   Each check's page lists its own.
 
 Configuration that only adapts a check to the repo's layout (`roots`,

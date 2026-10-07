@@ -31,10 +31,9 @@ task:
 
 ## Repository conformance
 
-This repo is held to the shared
-[repository checklist](https://github.com/rmartz/ai/blob/main/docs/guidance/repository-checklist.md),
-and it **self-manages** its own config: fix conformance gaps directly here, in a
-PR. Bootstrap (`ai-ensure-*`) is a one-time new-repo **starter**, not an ongoing
+This repo is held to the owner's shared repository checklist (kept in a private
+guidance repo, so it is not linked from this public one), and it
+**self-manages** its own config: fix conformance gaps directly here, in a PR. Bootstrap (`ai-ensure-*`) is a one-time new-repo **starter**, not an ongoing
 manager — do not defer a fix to a bootstrap re-run, and do not treat a `.github/`
 file as off-limits just because bootstrap once seeded it.
 
