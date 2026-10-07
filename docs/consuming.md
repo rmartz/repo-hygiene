@@ -94,7 +94,7 @@ from the package's registry:
 
 - **Omit `checks` entirely** → the Action runs the **default-on** set —
   currently every check **except** the network-dependent, opt-in
-  `action-pin-tags` (`conflict-markers`, `action-pins`, `package-pins`,
+  `action-pin-tags` and `private-repo-refs` (`conflict-markers`, `action-pins`, `package-pins`,
   `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`) — and a
   newly-added default-on check **auto-joins** on your next Dependabot bump with
   no edit to your caller. This is the recommended default. Every one of them
@@ -122,18 +122,19 @@ Per-repo settings live under `checks.<name>`. The framework understands one key
 everywhere — `severity` (see the ramp below) — and every other key is defined by
 the owning check:
 
-| Check              | Default | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                             |
-| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `conflict-markers` | on      | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                                 |
-| `action-pins`      | on      | none                                                                                                                                                                                                                                       |
-| `action-pin-tags`  | opt-in  | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                                    |
-| `package-pins`     | on      | none                                                                                                                                                                                                                                       |
-| `docs-links`       | on      | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (validate `#fragment` targets, bool, default `true`); `anchorExempt`                                                                        |
-| `md-pairing`       | on      | `wrapper` (each `CLAUDE.md` must be a bare import line; default `@AGENTS.md`, a custom string, or `false` to skip the rule)                                                                                                                |
-| `okf`              | on      | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` — no type needs a resource; a set one is still validated). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md). |
-| `okf-index`        | on      | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                                                                  |
-| `file-caps`        | on      | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes); `mode`; `base`                                                                                                                      |
-| _(any check)_      |         | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                                                                  |
+| Check               | Default | `.repo-hygiene.yml` keys under `checks.<name>`                                                                                                                                                                                                                           |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `conflict-markers`  | on      | none (the `ALLOW_CONFLICT_MARKERS` env var bypasses it in `--staged` only)                                                                                                                                                                                               |
+| `action-pins`       | on      | none                                                                                                                                                                                                                                                                     |
+| `action-pin-tags`   | opt-in  | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                                                                  |
+| `private-repo-refs` | opt-in  | `exclude` (globs added to the always-excluded `**/CHANGELOG.md`); `repository` (`owner/repo` override). Network: looks up repo visibility via the GitHub API with `GITHUB_TOKEN`/`GH_TOKEN`; no-ops on a private repo, and treats a repo the token cannot see as private |
+| `package-pins`      | on      | none                                                                                                                                                                                                                                                                     |
+| `docs-links`        | on      | `roots` (dirs to scan, default `[docs]`); `exempt` (link targets allowed to dangle); `anchors` (validate `#fragment` targets, bool, default `true`); `anchorExempt`                                                                                                      |
+| `md-pairing`        | on      | `wrapper` (each `CLAUDE.md` must be a bare import line; default `@AGENTS.md`, a custom string, or `false` to skip the rule)                                                                                                                                              |
+| `okf`               | on      | `types` (list, or `"*"` for any non-empty type); `roots`; `exempt`; `resourceExemptTypes` (list, or `"*"` — no type needs a resource; a set one is still validated). `index.md`/`log.md` auto-skipped. See [okf-format.md](okf-format.md).                               |
+| `okf-index`         | on      | `roots` (default `[docs]`); `indexName` (default `index.md`); `nestedIndexes` (bool, default `true` — `false` allows a flat hierarchy); `noUpwardLinks`; `noSiblingLinks`                                                                                                |
+| `file-caps`         | on      | `overrides: [{ glob, lines: {warn, error}, bytes: {warn, error} }]` (bytes accept `40KB`-style sizes); `mode`; `base`                                                                                                                                                    |
+| _(any check)_       |         | `severity: warn \| error` — overrides every finding this check emits (the migration ramp)                                                                                                                                                                                |
 
 That table is the **complete check roster** — the names you can pass in `checks:`.
 The `src/checks/` directory also contains `md-links` and `okf-fields`, but these

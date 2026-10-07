@@ -65,7 +65,7 @@ and a newly-added default-on check auto-joins on your next Dependabot bump with 
 edit here. The defaults are strict: every default-on check enforces at `error`.
 A repo that intentionally needs laxer rules relaxes them per check in its
 `.repo-hygiene.yml` (`severity: warn`, a laxer option, or `enabled: false`)
-rather than trimming the list. To add the opt-in `action-pin-tags`, name the
+rather than trimming the list. To add an opt-in check (`action-pin-tags`, `private-repo-refs`), name the
 checks explicitly (this becomes the _exact_ run list, so include the defaults
 you still want):
 
@@ -82,7 +82,7 @@ the [consumer guide](docs/consuming.md) for the full reference.
 ## Checks
 
 `conflict-markers`, `action-pins`, `action-pin-tags`, `package-pins`, `docs-links`, `md-links`,
-`md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps` — see
+`md-pairing`, `okf` (+ `okf-fields`, `okf-index`), `file-caps`, `private-repo-refs` — see
 [docs/checks/](docs/checks/index.md).
 
 ## Requirements
