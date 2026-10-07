@@ -75,24 +75,23 @@ describe('registry defaultNames', () => {
     expect(registry.defaultNames()).toEqual(['b', 'c']);
   });
 
-  it('the built-in default-on set is every check except the network-dependent action-pin-tags', () => {
+  it('the built-in default-on set is every check', () => {
     expect(createRegistry().defaultNames()).toEqual([
       'conflict-markers',
       'okf',
       'okf-index',
       'docs-links',
       'action-pins',
+      'action-pin-tags',
       'package-pins',
       'md-pairing',
       'file-caps',
     ]);
   });
 
-  it('action-pin-tags is the only opt-in check', () => {
+  it('no built-in check is opt-in', () => {
     const registry = createRegistry();
-    expect(registry.names().filter((n) => !registry.defaultNames().includes(n))).toEqual([
-      'action-pin-tags',
-    ]);
+    expect(registry.defaultNames()).toEqual(registry.names());
   });
 
   it('no built-in check softens its findings to warn by default', () => {
@@ -186,7 +185,9 @@ describe('runHygiene', () => {
 
   it('downgrades a check to warn via config severity (the ramp) → exit 0', async () => {
     const registry = createRegistry([fakeCheck('a', [err('a')])]);
-    const ramped = { checks: { a: { severity: 'warn' as const } } };
+    const ramped = {
+      checks: { a: { severity: 'warn' as const } },
+    };
     const result = await runHygiene(registry, { mode: '--check', config: ramped });
     expect(result.findings[0]?.severity).toBe('warn');
     expect(result.exitCode).toBe(0);

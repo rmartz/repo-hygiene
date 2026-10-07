@@ -21,10 +21,10 @@ repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <pat
 repo-hygiene --update-baseline [--check] [--config <path>]
 ```
 
-- **No check name** runs the registry's **default-on** set: every offline check,
-  strict by default — the same set the Action's empty `checks` default resolves
-  to. (`action-pins` is the one exception to "offline": it goes online only to
-  confirm a first-party tag pin.)
+- **No check name** runs the registry's **default-on** set (every built-in check,
+  at its recommended settings — the same set the Action's empty `checks` default
+  resolves to). Most checks are offline; `action-pin-tags` and, for a first-party
+  tag pin, `action-pins` use the network.
 - **`--all`** runs every registered check.
 - **Naming one or more** checks runs just those, with independent per-check
   statuses (`repo-hygiene okf docs-links --check`).
@@ -53,17 +53,18 @@ reports an exit-`3` run as cancelled rather than failed.
 Per-repo settings live in `.repo-hygiene.yml` under `checks.<name>`. The framework
 understands two keys in any check's section: `severity`, which the runner applies
 uniformly to override every finding that check emits (downgrade a whole check to
-`warn` while a backlog is worked off, then flip it back); and `enabled`, which when set to `false`
-skips the check entirely — the per-repo opt-out for a default-on check a repo
-cannot satisfy. Every other key is the check's own; see each
-[check page](checks/index.md) for its vocabulary.
+`warn` while a backlog is worked off, then flip it back); and `enabled`, which when
+set to `false` skips the check entirely. Every other key is the check's own; see
+each [check page](checks/index.md) for its vocabulary. Any setting that loosens a
+check is an exception, explained in a comment beside it (see
+[exceptions](distribution-contract.md#exceptions)).
 
 ## How the pieces fit
 
 - **[Checks](checks/index.md)** — one page per check: what it flags, its config,
   and whether it is default-on.
-- **[The distribution contract](distribution-contract.md)** — default-on vs
-  opt-in, and why.
+- **[The distribution contract](distribution-contract.md)** — every check on by
+  default, and loosening one as a reasoned exception.
 - **[How a check reaches consumers](consumer-path.md)** — release → Dependabot →
   pick-up.
 - **[Authoring a check](authoring-a-check.md)** — the `Check` contract, in five

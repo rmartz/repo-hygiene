@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, agents]
 
 # `md-pairing`
 
-**Default:** on · **Config:** `wrapper` · **Opt out:** `enabled: false`
+**Default:** on · **Config:** `wrapper` · **Exceptions** (explain each in a comment): `wrapper: false`, `severity: warn`, `enabled: false`
 
 Default-on at `error` severity, bare-wrapper rule included. A repo with legacy
 directive files relaxes it with `severity: warn` or `wrapper: false`, or turns it

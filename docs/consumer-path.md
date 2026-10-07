@@ -22,9 +22,9 @@ A newly-added check does **not** require any per-repo change to start running:
 4. **Pick-up.** Merging the Dependabot PR moves the consumer onto the new package
    version. A new **default-on** check now runs automatically — the consumer's
    empty `checks` input resolves to the registry's default-on set, so the check
-   auto-joins with no edit to their caller. An **opt-in** check ships in the
-   package but stays dormant until the repo adds it to its caller's `checks` input
-   and a `.repo-hygiene.yml` section.
+   auto-joins with no edit to their caller. Every built-in check is default-on;
+   a repo that can't meet a new one yet takes an exception (a loosening, with a
+   comment saying why) in its `.repo-hygiene.yml`.
 
 This is why default-safety is non-negotiable (see
 [the distribution contract](distribution-contract.md)): step 4 gives the consumer

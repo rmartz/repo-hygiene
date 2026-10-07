@@ -68,13 +68,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       # Dogfood the checks against our own tree using the freshly-built CLI (not
-      # the published package), so a regression in a check fails our own CI. This
-      # runs a broader set than a consumer's default-on set — every check that
-      # applies to this repo, configured via .repo-hygiene.yml — for maximum
-      # regression coverage. docs/ is an OKF bundle (see docs/okf-format.md), so
-      # okf / okf-index run here too.
+      # the published package), so a regression in a check fails our own CI. It
+      # runs the default set — every check, as a consumer with no `checks` input
+      # gets — configured via .repo-hygiene.yml, so a new check joins here too.
       - run: pnpm run build
-      - run: >-
-          node dist/bin/repo-hygiene.js
-          conflict-markers action-pins package-pins docs-links md-pairing okf okf-index file-caps
-          --check --config .repo-hygiene.yml
+      - run: node dist/bin/repo-hygiene.js --check --config .repo-hygiene.yml

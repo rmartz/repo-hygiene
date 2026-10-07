@@ -8,7 +8,7 @@ tags: [hygiene, ci, checks, docs]
 
 # `docs-links`
 
-**Default:** on · **Config:** `roots`, `exempt`, `anchors`, `anchorExempt` · **Opt out:** `enabled: false`
+**Default:** on · **Config:** `roots`, `exempt`, `anchors`, `anchorExempt` · **Exceptions** (explain each in a comment): `exempt`, `anchors: false`, `anchorExempt`, `severity: warn`, `enabled: false`
 
 Intra-repo Markdown link integrity: every relative Markdown link in a docs page
 must resolve to a file that exists, and (unless `anchors: false`) its
