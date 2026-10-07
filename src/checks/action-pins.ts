@@ -136,8 +136,8 @@ export const actionPinsCheck: Check = {
   description:
     'GitHub Actions pinned to a full commit SHA with a full-semver comment (or, first-party, an immutable release tag).',
   // Default-on: SHA-pinning is the security floor the hygiene suite exists to
-  // spread, needs no config, and only inspects `.github/**` workflow YAML — so it
-  // is safe to run on any consumer. (`package-pins`, its npm analog, is *not*
+  // spread, works with no config (`tagPinOwners` is optional), and only inspects
+  // `.github/**` workflow YAML — so it is safe to run on any consumer. (`package-pins`, its npm analog, is *not*
   // default-on: promoting it would break consumers using abbreviated ranges.)
   // The immutable-release lookup is the one network call, and it is made only for
   // an exact-tag pin by an allowlisted owner — a repo that SHA-pins everything
@@ -146,7 +146,13 @@ export const actionPinsCheck: Check = {
   async run(ctx) {
     const owners = tagPinOwners(ctx.settings, ctx.env);
     const findings: Finding[] = [];
-    const tagPins: { path: string; line: number; uses: string; key: string }[] = [];
+    const tagPins: {
+      path: string;
+      line: number;
+      uses: string;
+      target: { repo: string; tag: string };
+      lookup: Promise<ReleaseLookup>;
+    }[] = [];
     const lookups = new Map<string, Promise<ReleaseLookup>>();
     for (const path of ctx.files.paths) {
       if (!isGithubYaml(path)) continue;
@@ -160,13 +166,13 @@ export const actionPinsCheck: Check = {
         if (!target) return;
         // Start each distinct release's lookup up front so they run concurrently.
         const key = `${target.repo}@${target.tag}`;
-        if (!lookups.has(key)) lookups.set(key, lookupRelease(target.repo, target.tag, ctx.env));
-        tagPins.push({ path, line: i + 1, uses, key });
+        const lookup = lookups.get(key) ?? lookupRelease(target.repo, target.tag, ctx.env);
+        lookups.set(key, lookup);
+        tagPins.push({ path, line: i + 1, uses, target, lookup });
       });
     }
     for (const pin of tagPins) {
-      const target = tagPinTarget(pin.uses, owners)!;
-      const result = releaseFinding(pin.uses, target, await lookups.get(pin.key)!);
+      const result = releaseFinding(pin.uses, pin.target, await pin.lookup);
       if (result) findings.push({ check: NAME, path: pin.path, line: pin.line, ...result });
     }
     return findings;

@@ -21,9 +21,10 @@ repo-hygiene [<check>...] [--all] [--staged|--check|--check-diff] [--config <pat
 repo-hygiene --update-baseline [--check] [--config <path>]
 ```
 
-- **No check name** runs the registry's **default-on** set (every offline check —
-  `action-pins` only goes online to confirm a first-party tag pin — strict by default — the same set the Action's empty `checks` default resolves
-  to).
+- **No check name** runs the registry's **default-on** set: every offline check,
+  strict by default — the same set the Action's empty `checks` default resolves
+  to. (`action-pins` is the one exception to "offline": it goes online only to
+  confirm a first-party tag pin.)
 - **`--all`** runs every registered check.
 - **Naming one or more** checks runs just those, with independent per-check
   statuses (`repo-hygiene okf docs-links --check`).
