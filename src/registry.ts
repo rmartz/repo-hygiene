@@ -5,6 +5,7 @@ import { okfIndexCheck } from './checks/okf-index.js';
 import { docsLinksCheck } from './checks/docs-links.js';
 import { actionPinsCheck } from './checks/action-pins.js';
 import { actionPinTagsCheck } from './checks/action-pin-tags.js';
+import { privateRepoRefsCheck } from './checks/private-repo-refs.js';
 import { packagePinsCheck } from './checks/package-pins.js';
 import { mdPairingCheck } from './checks/md-pairing.js';
 import { fileCapsCheck } from './checks/file-caps.js';
@@ -27,6 +28,7 @@ export function builtinChecks(): Check[] {
     packagePinsCheck,
     mdPairingCheck,
     fileCapsCheck,
+    privateRepoRefsCheck,
   ];
 }
 

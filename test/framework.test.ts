@@ -88,10 +88,11 @@ describe('registry defaultNames', () => {
     ]);
   });
 
-  it('action-pin-tags is the only opt-in check', () => {
+  it('only the network checks are opt-in', () => {
     const registry = createRegistry();
     expect(registry.names().filter((n) => !registry.defaultNames().includes(n))).toEqual([
       'action-pin-tags',
+      'private-repo-refs',
     ]);
   });
 
