@@ -19,13 +19,15 @@ updates:
       prefix: chore
       include: scope
     groups:
-      # Every action bump, majors included, lands in one PR. bot-automerge holds
-      # a group containing a major for human review (fetch-metadata reports the
-      # group's highest update-type), and a major that breaks CI is split out into
-      # its own fix PR rather than holding the rest of the group back.
+      # Minor and patch action bumps land in one PR; every major opens its own PR,
+      # so a major held for human review can't hold routine bumps back from
+      # auto-merge.
       github-actions:
         patterns:
           - '*'
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: npm
     directory: /
     schedule:
