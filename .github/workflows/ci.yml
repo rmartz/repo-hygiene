@@ -73,3 +73,7 @@ jobs:
       # gets — configured via .repo-hygiene.yml, so a new check joins here too.
       - run: pnpm run build
       - run: node dist/bin/repo-hygiene.js --check --config .repo-hygiene.yml
+        env:
+          # private-repo-refs calls the GitHub API; without a token every lookup
+          # is anonymous and shares the runner IP's 60/hour quota, which 403s.
+          GITHUB_TOKEN: ${{ github.token }}

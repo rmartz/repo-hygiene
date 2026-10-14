@@ -36,3 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: rmartz/repo-hygiene-action@d7cd3ba50e4057242e8ebb1285c1ceaae441f152 # v5.0.0
+        env:
+          # The Action's `token` input is used only for statuses/cancel, not
+          # passed to the CLI, so private-repo-refs would call the GitHub API
+          # anonymously (60/hour per runner IP) and 403. Hand it one explicitly.
+          GITHUB_TOKEN: ${{ github.token }}

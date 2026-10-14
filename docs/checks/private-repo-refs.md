@@ -48,11 +48,35 @@ direction.
 Visibility comes from the GitHub REST API (`GET /repos/{owner}/{repo}`, at
 `GITHUB_API_URL` when set). The check sends `GITHUB_TOKEN` (or `GH_TOKEN`) when
 present. If the API returns **404**, the token can't see the repo. A public
-reader can't see it either, so the check treats it as private. Any other failure
-(a rate limit, 403, 5xx, timeout after 20s, or offline) is transient. It produces
-one `inconclusive` finding for that repo, and the run
-[exits `3`](../overview.md) when nothing else fails. If the lookup for the repo
-under test fails transiently, the whole check is inconclusive.
+reader can't see it either, so the check treats it as private.
+
+A **403 or 429** (rate limit) or a **5xx** is retried up to twice. The first
+retry waits 1s and the second 3s, unless the server asks for a specific wait
+(`Retry-After`, or `x-ratelimit-reset` when the quota is spent). A requested
+wait of up to 10s is honored. A longer one isn't worth waiting for, so the check
+stops retrying. A failure that persists, and any other failure (another status,
+a timeout after 20s, or offline), is transient. It produces one `inconclusive`
+finding for that repo, and the run [exits `3`](../overview.md) when nothing else
+fails. If the lookup for the repo under test fails transiently, the whole check
+is inconclusive. Inconclusive stays visible on purpose: it never turns into a
+pass.
+
+### Pass a token
+
+Give the check a token. Without one, every lookup is anonymous. Anonymous calls
+share GitHub's limit of 60 requests an hour per IP, and a shared CI runner's IP
+has often spent that already, so the lookups come back 403 and the run is
+inconclusive. The finding names the missing token when this happens. In GitHub
+Actions the workflow token is enough. Steps don't get it by default, so export
+it on the step that runs the CLI:
+
+```yaml
+- run: npx @rmartz/repo-hygiene --check
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
+```
+
+The token needs only read access (`contents: read`).
 
 In GitHub Actions, the default `GITHUB_TOKEN` can only see the repo it runs in.
 Every other private repo therefore returns 404 and is flagged, which is the

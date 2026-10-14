@@ -3,9 +3,17 @@ import type { FileSet } from '../../src/discovery.js';
 
 const boundedRun = vi.fn();
 vi.mock('../../src/lib/bounded-subprocess.js', () => ({ boundedRun }));
+const sleep = vi.fn(async () => {});
+vi.mock('../../src/lib/sleep.js', () => ({ sleep }));
 
-const { parseSettings, parseGithubRemote, findRepoRefs, fetchVisibility, privateRepoRefsCheck } =
-  await import('../../src/checks/private-repo-refs.js');
+const {
+  parseSettings,
+  parseGithubRemote,
+  findRepoRefs,
+  fetchVisibility,
+  rateLimitWaitMs,
+  privateRepoRefsCheck,
+} = await import('../../src/checks/private-repo-refs.js');
 const { InconclusiveError } = await import('../../src/outcome.js');
 const { builtinChecks, createRegistry } = await import('../../src/registry.js');
 
@@ -21,8 +29,13 @@ const ctx = (
   env: Record<string, string | undefined> = { GITHUB_REPOSITORY: 'acme/site' },
 ) => ({ mode: '--check' as const, files, settings, env });
 
-const json = (status: number, body: unknown = {}) =>
-  ({ status, ok: status >= 200 && status < 300, json: async () => body }) as Response;
+const json = (status: number, body: unknown = {}, headers: Record<string, string> = {}) =>
+  ({
+    status,
+    ok: status >= 200 && status < 300,
+    headers: new Headers(headers),
+    json: async () => body,
+  }) as Response;
 
 /** Route fetch by repo full name: 'public' | 'private' (404) | an HTTP status. */
 function visibilities(map: Record<string, 'public' | 'private' | number>) {
@@ -37,6 +50,7 @@ function visibilities(map: Record<string, 'public' | 'private' | number>) {
 
 beforeEach(() => {
   boundedRun.mockReset();
+  sleep.mockClear();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -149,10 +163,19 @@ describe('looks up visibility, treating an unseeable repo as private', () => {
   it('treats 404 as private and other failures as transient', async () => {
     fetchMock.mockResolvedValueOnce(json(404));
     expect(await fetchVisibility('acme/x', {})).toBe('private');
-    fetchMock.mockResolvedValueOnce(json(403));
-    expect(await fetchVisibility('acme/x', {})).toEqual({ reason: expect.stringContaining('403') });
+    fetchMock.mockResolvedValueOnce(json(401));
+    expect(await fetchVisibility('acme/x', {})).toEqual({ reason: expect.stringContaining('401') });
     fetchMock.mockRejectedValueOnce(new Error('offline'));
     expect(await fetchVisibility('acme/x', {})).toEqual({ reason: 'offline' });
+  });
+
+  it('does not retry a 401 or a network error', async () => {
+    fetchMock.mockResolvedValueOnce(json(401));
+    await fetchVisibility('acme/x', { GITHUB_TOKEN: 't' });
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    await fetchVisibility('acme/x', { GITHUB_TOKEN: 't' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(sleep).not.toHaveBeenCalled();
   });
 
   it('honors GITHUB_API_URL', async () => {
@@ -161,6 +184,69 @@ describe('looks up visibility, treating an unseeable repo as private', () => {
       'private',
     );
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://ghe.example/api/v3/repos/acme/x');
+  });
+});
+
+describe('retries rate limits and server errors before going inconclusive', () => {
+  it('retries a 5xx with backoff and returns the eventual answer', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json(502))
+      .mockResolvedValueOnce(json(503))
+      .mockResolvedValueOnce(json(200, { private: false }));
+    expect(await fetchVisibility('acme/x', { GITHUB_TOKEN: 't' })).toBe('public');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls).toEqual([[1_000], [3_000]]);
+  });
+
+  it('gives up after three attempts with the last status', async () => {
+    fetchMock.mockResolvedValue(json(500));
+    expect(await fetchVisibility('acme/x', { GITHUB_TOKEN: 't' })).toEqual({
+      reason: 'GitHub API returned HTTP 500',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('honors a short Retry-After on a 429 or 403', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json(429, {}, { 'retry-after': '2' }))
+      .mockResolvedValueOnce(json(403, {}, { 'retry-after': '5' }))
+      .mockResolvedValueOnce(json(404));
+    expect(await fetchVisibility('acme/x', { GITHUB_TOKEN: 't' })).toBe('private');
+    expect(sleep.mock.calls).toEqual([[2_000], [5_000]]);
+  });
+
+  it('stops at once when the server asks for a long wait, naming the missing token', async () => {
+    const reset = String(Math.floor(Date.now() / 1000) + 3600);
+    fetchMock.mockResolvedValue(
+      json(403, {}, { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': reset }),
+    );
+    const result = await fetchVisibility('acme/x', {});
+    expect(result).toEqual({ reason: expect.stringContaining('HTTP 403') });
+    expect(result).toEqual({ reason: expect.stringContaining('set GITHUB_TOKEN') });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('omits the token hint when a token was sent', async () => {
+    fetchMock.mockResolvedValue(json(403));
+    expect(await fetchVisibility('acme/x', { GH_TOKEN: 't' })).toEqual({
+      reason: 'GitHub API returned HTTP 403',
+    });
+  });
+
+  it('reads the wait from Retry-After or a spent x-ratelimit-reset', () => {
+    expect(rateLimitWaitMs(new Headers({ 'retry-after': '7' }))).toBe(7_000);
+    expect(
+      rateLimitWaitMs(
+        new Headers({ 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': '1004' }),
+        1_000_000,
+      ),
+    ).toBe(4_000);
+    expect(
+      rateLimitWaitMs(new Headers({ 'x-ratelimit-remaining': '12', 'x-ratelimit-reset': '1004' })),
+    ).toBeNull();
+    expect(rateLimitWaitMs(new Headers({ 'retry-after': 'soon' }))).toBeNull();
+    expect(rateLimitWaitMs(new Headers())).toBeNull();
   });
 });
 

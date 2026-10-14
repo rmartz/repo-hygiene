@@ -58,7 +58,16 @@ jobs:
     steps:
       - uses: actions/checkout@<sha> # vX.Y.Z
       - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # for the checks that call the GitHub API
 ```
+
+The `env` line gives the network checks (`private-repo-refs`, `action-pins`,
+`action-pin-tags`) a token. The Action's `token` input currently posts statuses
+only and isn't passed on to the checks. Without the `env` line they call the
+GitHub API anonymously, which shares a runner IP's limit of 60 requests an hour
+and often leaves `private-repo-refs` inconclusive. See
+[Pass a token](checks/private-repo-refs.md#pass-a-token).
 
 The Action's full input list (`checks`, `config`, `node-version`,
 `working-directory`, per-check statuses) is in its
