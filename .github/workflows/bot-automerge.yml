@@ -11,7 +11,7 @@
 # as the `token` input: a merge enabled with GITHUB_TOKEN fires no push
 # workflows, so the release would never run. App-authored events still trigger
 # push workflows, and the App has its own rate-limit pool, separate from the
-# user's (rmartz/scripts#22).
+# user's.
 #
 # The migration also drops the reusable workflow's per-PR `concurrency` group:
 # GitHub permits only one PENDING run per group and cancels any it supersedes, so a
@@ -62,5 +62,5 @@ jobs:
           # reach main with no push-triggered CI, release, or merge-safety run
           # (rmartz/bot-automerge-action#31). App-authored events do trigger push
           # workflows, and the App has its own rate-limit pool, separate from the
-          # user's (rmartz/scripts#22).
+          # user's.
           token: ${{ steps.app-token.outputs.token }}
