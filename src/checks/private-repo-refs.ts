@@ -1,6 +1,7 @@
 import picomatch from 'picomatch';
 import type { Check, CheckConfig, Finding } from '../types.js';
 import { boundedRun } from '../lib/bounded-subprocess.js';
+import { sleep } from '../lib/sleep.js';
 import { InconclusiveError } from '../outcome.js';
 
 /**
@@ -16,7 +17,8 @@ import { InconclusiveError } from '../outcome.js';
  * same-owner references and looks each distinct one up. A repo the token cannot
  * see (404) is treated as private — a public reader cannot see it either. Any
  * other lookup failure (rate limit, 5xx, timeout, offline) is transient and makes
- * the affected references inconclusive, never a failure.
+ * the affected references inconclusive, never a failure; a rate limit or 5xx
+ * is retried a couple of times first.
  *
  * Default-on like every check, though it calls the GitHub API: lookups fail safe
  * (`inconclusive`, never `error`), and it does nothing on a private repo.
@@ -91,10 +93,34 @@ export function findRepoRefs(text: string, owner: string): { repo: string; line:
 /** A repo's visibility, or why it could not be determined (always transient). */
 export type Visibility = 'public' | 'private' | { reason: string };
 
+/** Attempts per lookup: the first request plus two retries. */
+const MAX_ATTEMPTS = 3;
+/** Backoff before retry N (1-based) when the server gives no wait hint. */
+const BACKOFF_MS = [1_000, 3_000];
+/** The longest server-requested wait worth sitting through; longer gives up. */
+const MAX_HINT_WAIT_MS = 10_000;
+
+/**
+ * How long the server asks us to wait before retrying, from `Retry-After`
+ * (seconds) or `x-ratelimit-reset` (epoch seconds) when the quota is spent.
+ * Null when neither header says.
+ */
+export function rateLimitWaitMs(headers: Headers, now = Date.now()): number | null {
+  const retryAfter = headers.get('retry-after');
+  if (retryAfter !== null && /^\d+$/.test(retryAfter.trim())) return Number(retryAfter) * 1000;
+  const reset = headers.get('x-ratelimit-reset');
+  if (headers.get('x-ratelimit-remaining') === '0' && reset !== null && /^\d+$/.test(reset)) {
+    return Math.max(0, Number(reset) * 1000 - now);
+  }
+  return null;
+}
+
 /**
  * Look up `fullName`'s visibility with the GitHub REST API. A 404 means the token
  * (or an anonymous caller) cannot see the repo, which is exactly what a public
- * reader experiences, so it counts as private. Every other non-200 is transient.
+ * reader experiences, so it counts as private. A 403/429 rate limit or a 5xx is
+ * retried with a short backoff (honoring the server's wait hint when it is short);
+ * one that persists, and every other non-200, is transient.
  */
 export async function fetchVisibility(
   fullName: string,
@@ -102,21 +128,40 @@ export async function fetchVisibility(
 ): Promise<Visibility> {
   const api = (env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/$/, '');
   const token = env.GITHUB_TOKEN ?? env.GH_TOKEN;
-  try {
-    const res = await fetch(`${api}/repos/${fullName}`, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': '@rmartz/repo-hygiene',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    });
+  // Anonymous calls share a 60/hour per-IP quota, which a CI runner's IP often
+  // spends before we arrive: say so, since the fix is passing a token.
+  const hint = token ? '' : ' — anonymous request; set GITHUB_TOKEN to avoid the 60/hour limit';
+  for (let attempt = 1; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`${api}/repos/${fullName}`, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': '@rmartz/repo-hygiene',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      });
+    } catch (err) {
+      return { reason: err instanceof Error ? err.message : String(err) };
+    }
     if (res.status === 404) return 'private';
-    if (!res.ok) return { reason: `GitHub API returned HTTP ${res.status}` };
-    const body = (await res.json()) as { private?: unknown };
-    return body.private === false ? 'public' : 'private';
-  } catch (err) {
-    return { reason: err instanceof Error ? err.message : String(err) };
+    if (res.ok) {
+      try {
+        const body = (await res.json()) as { private?: unknown };
+        return body.private === false ? 'public' : 'private';
+      } catch (err) {
+        return { reason: err instanceof Error ? err.message : String(err) };
+      }
+    }
+    const rateLimited = res.status === 403 || res.status === 429;
+    const failure = {
+      reason: `GitHub API returned HTTP ${res.status}${rateLimited ? hint : ''}`,
+    };
+    if (!(rateLimited || res.status >= 500) || attempt >= MAX_ATTEMPTS) return failure;
+    const requested = rateLimitWaitMs(res.headers);
+    if (requested !== null && requested > MAX_HINT_WAIT_MS) return failure;
+    await sleep(requested ?? BACKOFF_MS[attempt - 1]!);
   }
 }
 

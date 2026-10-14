@@ -73,6 +73,11 @@ export function resolveTag(
  * Git env for a non-interactive `ls-remote`. A token (for private upstreams) is
  * injected as an HTTP header through `GIT_CONFIG_*` env vars — the same mechanism
  * `actions/checkout` uses — so it never appears in argv or the process list.
+ *
+ * `http.extraheader` is multi-valued, and `actions/checkout` persists its own
+ * Authorization header in the workspace's `.git/config`. Appending ours would
+ * send two, which GitHub rejects ("Duplicate header"), so an empty value first
+ * resets the list and ours is the only one.
  */
 function gitEnv(env: Record<string, string | undefined>): NodeJS.ProcessEnv {
   const out: NodeJS.ProcessEnv = { ...env, GIT_TERMINAL_PROMPT: '0' };
@@ -80,9 +85,11 @@ function gitEnv(env: Record<string, string | undefined>): NodeJS.ProcessEnv {
   if (token) {
     const basic = Buffer.from(`x-access-token:${token}`).toString('base64');
     Object.assign(out, {
-      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_COUNT: '2',
       GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
-      GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
+      GIT_CONFIG_VALUE_0: '',
+      GIT_CONFIG_KEY_1: 'http.https://github.com/.extraheader',
+      GIT_CONFIG_VALUE_1: `AUTHORIZATION: basic ${basic}`,
     });
   }
   return out;

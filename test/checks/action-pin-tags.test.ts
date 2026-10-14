@@ -214,9 +214,13 @@ describe('action-pin-tags check', () => {
     const basic = Buffer.from('x-access-token:tkn').toString('base64');
     expect(opts).toMatchObject({
       env: expect.objectContaining({
-        GIT_CONFIG_COUNT: '1',
+        // An empty value first resets a header actions/checkout persisted, so
+        // git sends one Authorization header, not two.
+        GIT_CONFIG_COUNT: '2',
         GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
-        GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
+        GIT_CONFIG_VALUE_0: '',
+        GIT_CONFIG_KEY_1: 'http.https://github.com/.extraheader',
+        GIT_CONFIG_VALUE_1: `AUTHORIZATION: basic ${basic}`,
       }),
     });
   });
