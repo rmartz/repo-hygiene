@@ -28,6 +28,7 @@ on:
 
 permissions:
   contents: read # the Action installs @rmartz/repo-hygiene from public npmjs, no token needed
+  statuses: write # post one `repo-hygiene / <check>` status per check
 
 jobs:
   hygiene:
