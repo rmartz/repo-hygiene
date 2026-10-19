@@ -29,6 +29,7 @@ on:
 permissions:
   contents: read # the Action installs @rmartz/repo-hygiene from public npmjs, no token needed
   statuses: write # post one `repo-hygiene / <check>` status per check
+  actions: write # cancel the run when a check is inconclusive (on-inconclusive: cancel)
 
 jobs:
   hygiene:
