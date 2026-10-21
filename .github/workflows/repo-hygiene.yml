@@ -43,7 +43,7 @@ jobs:
           # own header from GITHUB_TOKEN, and GitHub rejects the duplicate
           # ("Duplicate header"), leaving the check inconclusive.
           persist-credentials: false
-      - uses: rmartz/repo-hygiene-action@434660775efff988acaad1fc1f9696cb2495f85f # v6.0.0
+      - uses: rmartz/repo-hygiene-action@5ea64035e33737f85a9dc58a348f6d3c8a197bb3 # v6.0.1
         env:
           # The Action's `token` input is used only for statuses/cancel, not
           # passed to the CLI, so private-repo-refs would call the GitHub API
@@ -61,7 +61,7 @@ jobs:
       # action-pins runs offline on these refs, and statuses are off so the
       # deliberate failure never posts a red status to the commit.
       - name: Dogfood — the Action must pass on the known-good fixture
-        uses: rmartz/repo-hygiene-action@434660775efff988acaad1fc1f9696cb2495f85f # v6.0.0
+        uses: rmartz/repo-hygiene-action@5ea64035e33737f85a9dc58a348f6d3c8a197bb3 # v6.0.1
         with:
           working-directory: test/fixtures/dogfood/known-good
           checks: action-pins
@@ -70,7 +70,7 @@ jobs:
       - name: Dogfood — the Action must fail on the known-bad fixture
         id: known-bad
         continue-on-error: true
-        uses: rmartz/repo-hygiene-action@434660775efff988acaad1fc1f9696cb2495f85f # v6.0.0
+        uses: rmartz/repo-hygiene-action@5ea64035e33737f85a9dc58a348f6d3c8a197bb3 # v6.0.1
         with:
           working-directory: test/fixtures/dogfood/known-bad
           checks: action-pins
