@@ -22,6 +22,7 @@ checks, and [authoring a check](../authoring-a-check.md) to add one.
 | [`actionlint`](actionlint.md)                     | on      | Workflow errors from a pinned actionlint, shellcheck included (network).                                             |
 | [`composite-shellcheck`](composite-shellcheck.md) | on      | shellcheck findings in the `run:` steps of a composite action's `action.yml`.                                        |
 | [`private-repo-refs`](private-repo-refs.md)       | on      | On a public repo, references to private repos in the same account (network).                                         |
+| [`job-timeouts`](job-timeouts.md)                 | on      | Workflow jobs with no `timeout-minutes`, or one above the cap (default 15).                                          |
 
 `md-links` and `okf-fields` are **shared modules** (inline-link parsing and OKF
 optional-field validation) consumed by the checks above, not separately registered

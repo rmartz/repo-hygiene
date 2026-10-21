@@ -89,6 +89,7 @@ describe('registry defaultNames', () => {
       'actionlint',
       'composite-shellcheck',
       'private-repo-refs',
+      'job-timeouts',
     ]);
   });
 

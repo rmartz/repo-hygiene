@@ -25,4 +25,6 @@ export * from './checks/actionlint-release.js';
 export * from './checks/composite-shellcheck.js';
 export * from './checks/composite-steps.js';
 export * from './checks/shellcheck.js';
+export * from './checks/job-timeouts.js';
+export * from './checks/job-timeouts-config.js';
 export * from './check-conflict-markers.js';
