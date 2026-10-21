@@ -88,6 +88,7 @@ describe('registry defaultNames', () => {
       'file-caps',
       'actionlint',
       'private-repo-refs',
+      'job-timeouts',
     ]);
   });
 

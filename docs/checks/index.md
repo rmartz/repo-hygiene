@@ -21,6 +21,7 @@ checks, and [authoring a check](../authoring-a-check.md) to add one.
 | [`action-pin-tags`](action-pin-tags.md)     | on      | Pin comments naming no upstream tag, or a tag at another SHA (network).                                              |
 | [`actionlint`](actionlint.md)               | on      | Workflow errors from a pinned actionlint, shellcheck included (network).                                             |
 | [`private-repo-refs`](private-repo-refs.md) | on      | On a public repo, references to private repos in the same account (network).                                         |
+| [`job-timeouts`](job-timeouts.md)           | on      | Workflow jobs with no `timeout-minutes`, or one above the cap (default 15).                                          |
 
 `md-links` and `okf-fields` are **shared modules** (inline-link parsing and OKF
 optional-field validation) consumed by the checks above, not separately registered

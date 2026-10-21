@@ -22,4 +22,6 @@ export * from './checks/file-caps-baseline.js';
 export * from './checks/actionlint.js';
 export * from './checks/actionlint-config.js';
 export * from './checks/actionlint-release.js';
+export * from './checks/job-timeouts.js';
+export * from './checks/job-timeouts-config.js';
 export * from './check-conflict-markers.js';

@@ -104,7 +104,7 @@ from the package's registry:
 - **Omit `checks` entirely** → the Action runs the **default-on** set — every
   built-in check (`conflict-markers`, `action-pins`, `action-pin-tags`,
   `package-pins`, `docs-links`, `md-pairing`, `okf`, `okf-index`, `file-caps`,
-  `actionlint`, `private-repo-refs`) —
+  `actionlint`, `private-repo-refs`, `job-timeouts`) —
   and a newly-added check **auto-joins** on your next Dependabot bump with no
   edit to your caller. This is the recommended default. Every one of them
   enforces at `error` at its recommended settings; take an exception in
@@ -118,7 +118,7 @@ from the package's registry:
 - uses: rmartz/repo-hygiene-action@<sha> # vX.Y.Z
   with:
     # pin an explicit set (forfeits auto-join of future checks)
-    checks: conflict-markers action-pins action-pin-tags package-pins docs-links md-pairing okf okf-index file-caps actionlint private-repo-refs
+    checks: conflict-markers action-pins action-pin-tags package-pins docs-links md-pairing okf okf-index file-caps actionlint private-repo-refs job-timeouts
     config: .repo-hygiene.yml
 ```
 
@@ -141,6 +141,7 @@ commit message that adds it):
 | `action-pin-tags`   | on      | none (network: lists upstream tags; reads `GITHUB_TOKEN`/`GH_TOKEN` for private upstreams, and warns and skips an unreachable upstream)                                                                                                                                                                                        |
 | `actionlint`        | on      | `shellcheckSeverity` (`warning` default; `info`/`style` tighten, `error` is an exception); `shellcheck` (bool, default `true`; `false` is an exception); `ignore` _(exception)_ (path glob → message regexes). See [actionlint.md](checks/actionlint.md).                                                                      |
 | `private-repo-refs` | on      | `exclude` _(exception)_ (globs added to the always-excluded `**/CHANGELOG.md`); `repository` (`owner/repo` override). Network: looks up repo visibility via the GitHub API with `GITHUB_TOKEN`/`GH_TOKEN`; no-ops on a private repo, and treats a repo the token cannot see as private                                         |
+| `job-timeouts`      | on      | `maxMinutes` (job-level `timeout-minutes` cap, default `15`; raising it is an exception); `allowExpressions` _(exception)_ (bool, default `false`: accept an unverifiable `${{ }}` timeout); `ignore` _(exception)_ (path glob → job ids, `*` for every job). See [job-timeouts.md](checks/job-timeouts.md).                   |
 | `package-pins`      | on      | none                                                                                                                                                                                                                                                                                                                           |
 | `docs-links`        | on      | `roots` (dirs to scan, default `[docs]`); `exempt` _(exception)_ (link targets allowed to dangle); `anchors` (validate `#fragment` targets, bool, default `true`; `false` is an exception); `anchorExempt` _(exception)_                                                                                                       |
 | `md-pairing`        | on      | `wrapper` (each `CLAUDE.md` must be a bare import line; default `@AGENTS.md`, a custom string, or `false` to skip the rule — an exception)                                                                                                                                                                                     |
