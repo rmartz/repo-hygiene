@@ -1,0 +1,10 @@
+# Dogfood fixture (rmartz/repo-hygiene#73): the Repo Hygiene workflow runs the
+# published Action over known-good/ and known-bad/, and it must pass on the first
+# and fail on the second. The two copies differ only on the `uses:` line below.
+name: Fixture
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
