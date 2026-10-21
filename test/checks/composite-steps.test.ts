@@ -43,6 +43,17 @@ describe('maskExpressions', () => {
   it('keeps newlines inside a multi-line expression', () => {
     expect(maskExpressions('a ${{ x\n }} b')).toBe('a _____\n___ b');
   });
+
+  it('leaves an unclosed expression as written', () => {
+    expect(maskExpressions('echo ${{ a }} ${{ b')).toBe(`echo ${'_'.repeat(8)} \${{ b`);
+  });
+
+  it('stays linear on a long unclosed ${{ run', () => {
+    const script = '${{'.repeat(200_000);
+    const started = performance.now();
+    expect(maskExpressions(script)).toBe(script);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
 });
 
 describe('extractRunSteps', () => {

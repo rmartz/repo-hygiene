@@ -9,7 +9,6 @@ import { LineCounter, isMap, isScalar, isSeq, parseDocument } from 'yaml';
  */
 
 const ACTION = /(?:^|\/)action\.ya?ml$/;
-const EXPRESSION = /\$\{\{[\s\S]*?\}\}/g;
 
 export type ShellDialect = 'bash' | 'sh';
 
@@ -45,10 +44,22 @@ export const isActionPath = (path: string): boolean => ACTION.test(path);
 /**
  * Replace every `${{ … }}` expression with underscores of the same length (keeping
  * any newline inside it), as actionlint does, so expression syntax is never read
- * as shell and shellcheck's columns and lines still line up.
+ * as shell and shellcheck's columns and lines still line up. A linear scan, not a
+ * lazy regex, so an unclosed `${{` run can't make it quadratic.
  */
-export const maskExpressions = (script: string): string =>
-  script.replace(EXPRESSION, (expr) => expr.replace(/[^\n]/g, '_'));
+export function maskExpressions(script: string): string {
+  let out = '';
+  let from = 0;
+  for (;;) {
+    const start = script.indexOf('${{', from);
+    if (start === -1) break;
+    const end = script.indexOf('}}', start + 3);
+    if (end === -1) break;
+    out += script.slice(from, start) + script.slice(start, end + 2).replace(/[^\n]/g, '_');
+    from = end + 2;
+  }
+  return out + script.slice(from);
+}
 
 /**
  * The shellcheck dialect for a `shell:` value: `bash` and `sh`, bare or as the
