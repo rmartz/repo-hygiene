@@ -13,10 +13,10 @@
  * in docs/checks/docs-links.md; the `anchorExempt` config is the escape hatch.
  */
 
+import { stepFence } from './md-code.js';
+
 // ATX heading: 1–6 leading `#`, optional trailing `#` run, up to 3 leading spaces.
 const ATX_RE = /^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
-// A fence opener/closer: 3+ backticks or tildes (an opener may carry an info string).
-const FENCE_RE = /^\s*(`{3,}|~{3,})(.*)$/;
 // Setext underline: a line of only `=` (h1) or only `-` (h2).
 const SETEXT_RE = /^ {0,3}(=+|-+)\s*$/;
 // Explicit anchors GitHub honours from raw HTML: `id`/`name` on any tag.
@@ -94,18 +94,9 @@ export function collectAnchors(content: string): Set<string> {
 
   for (let i = frontmatterEnd(lines); i < lines.length; i++) {
     const line = lines[i] ?? '';
-    const fenceMatch = FENCE_RE.exec(line);
-    if (fence) {
-      // Inside a fenced block: only a bare fence of the same kind and length closes it.
-      if (fenceMatch && fenceMatch[2]?.trim() === '' && fenceMatch[1]?.startsWith(fence)) {
-        fence = '';
-      }
-      continue;
-    }
-    if (fenceMatch) {
-      fence = fenceMatch[1] ?? '';
-      continue;
-    }
+    const step = stepFence(fence, line);
+    fence = step.fence;
+    if (step.code) continue;
     for (const m of line.matchAll(HTML_ID_RE)) if (m[1]) anchors.add(m[1]);
     const atx = ATX_RE.exec(line);
     if (atx) {

@@ -55,6 +55,33 @@ describe('checkDocLinks', () => {
     expect(checkDocLinks('docs/a.md', content, DEFAULTS, exists([]))).toEqual([]);
   });
 
+  it('ignores link syntax inside an inline code span', () => {
+    const content = '3. **Post one sticky PR comment** embedding `![](url)` per story\n';
+    expect(checkDocLinks('docs/guidance/x.md', content, DEFAULTS, exists([]))).toEqual([]);
+  });
+
+  it('ignores link syntax inside a multi-backtick code span', () => {
+    const content = 'write ``[text](`path`)`` to link\n';
+    expect(checkDocLinks('docs/a.md', content, DEFAULTS, exists([]))).toEqual([]);
+  });
+
+  it('ignores link syntax inside a fenced code block', () => {
+    const content = 'example:\n\n```markdown\n[gone](./missing.md)\n```\n';
+    expect(checkDocLinks('docs/a.md', content, DEFAULTS, exists([]))).toEqual([]);
+  });
+
+  it('still flags a broken link that follows a code span on the same line', () => {
+    const findings = checkDocLinks(
+      'docs/a.md',
+      '`[x](y)` then [gone](./missing.md)',
+      DEFAULTS,
+      exists([]),
+    );
+    expect(findings.map((f) => f.message)).toEqual([
+      'broken link: ./missing.md → docs/missing.md does not exist',
+    ]);
+  });
+
   it('does not flag a missing target listed in exempt', () => {
     const cfg = { ...DEFAULTS, exempt: ['docs/generated.md'] };
     expect(checkDocLinks('docs/a.md', '[g](./generated.md)', cfg, exists([]))).toEqual([]);

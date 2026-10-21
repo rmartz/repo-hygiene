@@ -49,3 +49,35 @@ jobs:
           # passed to the CLI, so private-repo-refs would call the GitHub API
           # anonymously (60/hour per runner IP) and 403. Hand it one explicitly.
           GITHUB_TOKEN: ${{ github.token }}
+      # Prove the Action *ran*, not merely that it did not fail (#73). A CLI that
+      # silently no-ops exits 0 on any tree (#67 shipped green that way from v1 to
+      # v6), so a passing run over our own clean tree proves nothing on its own.
+      # Run the same Action over a fixture pair that differs by one deliberate
+      # violation: it must pass on known-good and fail on known-bad. A no-op passes
+      # both and a crash fails both; only a real check produces the contrast. A
+      # later step can't read a composite Action's output, so this pair is what
+      # tells "found the finding" apart from "failed for some other reason".
+      # test/dogfood-fixtures.test.ts pins the fixtures to exactly that finding.
+      # action-pins runs offline on these refs, and statuses are off so the
+      # deliberate failure never posts a red status to the commit.
+      - name: Dogfood — the Action must pass on the known-good fixture
+        uses: rmartz/repo-hygiene-action@434660775efff988acaad1fc1f9696cb2495f85f # v6.0.0
+        with:
+          working-directory: test/fixtures/dogfood/known-good
+          checks: action-pins
+          statuses: 'false'
+          on-inconclusive: fail
+      - name: Dogfood — the Action must fail on the known-bad fixture
+        id: known-bad
+        continue-on-error: true
+        uses: rmartz/repo-hygiene-action@434660775efff988acaad1fc1f9696cb2495f85f # v6.0.0
+        with:
+          working-directory: test/fixtures/dogfood/known-bad
+          checks: action-pins
+          statuses: 'false'
+          on-inconclusive: fail
+      - name: Assert the Action failed on the known-bad fixture
+        if: steps.known-bad.outcome != 'failure'
+        run: |
+          echo "::error title=repo-hygiene dogfood::The Action passed on a known-bad fixture — the CLI is not running its checks."
+          exit 1
