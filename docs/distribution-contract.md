@@ -78,6 +78,7 @@ What counts as loosening:
   (`okf-index`), a laxer override or a `mode` other than `strict` (`file-caps`),
   `tagPinOwners` naming owners beyond the repo's own (`action-pins`),
   `shellcheck: false` / `shellcheckSeverity: error` / `ignore` (`actionlint`),
+  `shellcheckSeverity: error` / `ignore` (`composite-shellcheck`),
   `exclude` (`private-repo-refs`).
   Each check's page lists its own.
 
