@@ -87,7 +87,9 @@ describe('registry defaultNames', () => {
       'md-pairing',
       'file-caps',
       'actionlint',
+      'composite-shellcheck',
       'private-repo-refs',
+      'job-timeouts',
     ]);
   });
 

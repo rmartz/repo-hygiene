@@ -121,9 +121,8 @@ actionlint to consumers.
 
 actionlint lints only `.github/workflows/*`. It does **not** shellcheck the
 `run:` steps of a composite action's `action.yml`, the main product of every
-`-action` repo. That needs a separate extractor, tracked in
-[#126](https://github.com/rmartz/repo-hygiene/issues/126); this check doesn't
-pretend to cover it.
+`-action` repo. The [`composite-shellcheck`](composite-shellcheck.md) check
+covers those, at the same recommended settings and exceptions.
 
 ## Cost
 

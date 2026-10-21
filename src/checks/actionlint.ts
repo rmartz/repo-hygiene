@@ -5,6 +5,7 @@ import { boundedRun } from '../lib/bounded-subprocess.js';
 import { InconclusiveError } from '../outcome.js';
 import { installActionlint } from './actionlint-binary.js';
 import { isIgnored, parseActionlintSettings } from './actionlint-config.js';
+import { hasShellcheck } from './shellcheck.js';
 
 /**
  * Workflow linting with [actionlint](https://github.com/rhysd/actionlint) (#104):
@@ -21,7 +22,6 @@ import { isIgnored, parseActionlintSettings } from './actionlint-config.js';
 const NAME = 'actionlint';
 const WORKFLOW = /^\.github\/workflows\/[^/]+\.ya?ml$/;
 const RUN_TIMEOUT_MS = 120_000;
-const PROBE_TIMEOUT_MS = 10_000;
 
 /** One entry of actionlint's `-format '{{json .}}'` output. */
 export interface ActionlintError {
@@ -46,19 +46,6 @@ export function parseActionlintJson(stdout: string, cwd: string): ActionlintErro
     const abs = isAbsolute(e.filepath) ? e.filepath : resolve(cwd, e.filepath);
     return { ...e, filepath: relative(cwd, abs).split(sep).join('/') };
   });
-}
-
-/** Whether `shellcheck` is runnable from PATH. */
-async function hasShellcheck(env: NodeJS.ProcessEnv): Promise<boolean> {
-  try {
-    const res = await boundedRun('shellcheck', ['--version'], {
-      timeoutMs: PROBE_TIMEOUT_MS,
-      env,
-    });
-    return res.code === 0;
-  } catch {
-    return false; // spawn ENOENT: not installed
-  }
 }
 
 export const actionlintCheck: Check = {

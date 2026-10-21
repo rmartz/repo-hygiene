@@ -9,7 +9,9 @@ import { packagePinsCheck } from './checks/package-pins.js';
 import { mdPairingCheck } from './checks/md-pairing.js';
 import { fileCapsCheck } from './checks/file-caps.js';
 import { actionlintCheck } from './checks/actionlint.js';
+import { compositeShellcheckCheck } from './checks/composite-shellcheck.js';
 import { privateRepoRefsCheck } from './checks/private-repo-refs.js';
+import { jobTimeoutsCheck } from './checks/job-timeouts.js';
 
 /**
  * The check registry: the lookup the CLI dispatches through. It is built from an
@@ -30,7 +32,9 @@ export function builtinChecks(): Check[] {
     mdPairingCheck,
     fileCapsCheck,
     actionlintCheck,
+    compositeShellcheckCheck,
     privateRepoRefsCheck,
+    jobTimeoutsCheck,
   ];
 }
 
