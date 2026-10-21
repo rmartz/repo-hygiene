@@ -35,8 +35,8 @@ construction, no network); anchors into **non-Markdown** targets; and GitHub
 source line ranges (`#L10`, `#L10-L20`).
 
 **Code is not a link:** link syntax inside a fenced code block or an inline code
-span (single or multi-backtick, e.g. `` `![](url)` ``) is literal text, so it is
-never scanned. The shared scanner in `md-links.ts` masks these regions first, so
+span (single or multi-backtick, such as an image placeholder shown in backticks)
+is literal text, so it is never scanned. The shared scanner in `md-links.ts` masks these regions first, so
 `okf-index` likewise doesn't count a link shown in code as navigation. Indented
 (4-space) code blocks and HTML `<code>` are not masked; reword or `exempt` a
 link there.
