@@ -22,4 +22,7 @@ export * from './checks/file-caps-baseline.js';
 export * from './checks/actionlint.js';
 export * from './checks/actionlint-config.js';
 export * from './checks/actionlint-release.js';
+export * from './checks/composite-shellcheck.js';
+export * from './checks/composite-steps.js';
+export * from './checks/shellcheck.js';
 export * from './check-conflict-markers.js';
