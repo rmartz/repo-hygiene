@@ -1,4 +1,4 @@
-import { LineCounter, isMap, isScalar, parseDocument, type Node } from 'yaml';
+import { LineCounter, isMap, isNode, isScalar, parseDocument } from 'yaml';
 import type { Check, Finding } from '../types.js';
 import { isWorkflowPath } from './actionlint.js';
 import {
@@ -52,9 +52,6 @@ export function scanJobTimeouts(
   }
   return errors;
 }
-
-const isNode = (value: unknown): value is Node =>
-  typeof value === 'object' && value !== null && 'range' in value;
 
 /** Why a job-level `timeout-minutes` value fails the policy, or null if it passes. */
 function timeoutReason(value: unknown, settings: JobTimeoutSettings): string | null {
