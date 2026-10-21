@@ -7,6 +7,8 @@
  * the resolver live here once rather than in a copy per check.
  */
 
+import { maskCode } from './md-code.js';
+
 /** One inline Markdown link: its raw href and the 1-based line it sits on. */
 export interface MarkdownLink {
   href: string;
@@ -19,13 +21,18 @@ export interface MarkdownLink {
 // Caps prevent polynomial backtracking on pathological inputs (CodeQL CWE-1333).
 const LINK_RE = /\[[^\]]{0,2000}\]\(([^)]{0,4000})\)/g;
 
-/** Every inline `[text](href)` link in `content`, with 1-based line numbers. */
+/**
+ * Every inline `[text](href)` link in `content`, with 1-based line numbers. Link
+ * syntax inside fenced code blocks and inline code spans is literal text, not a
+ * link, so it is masked out before matching (line numbers are unaffected).
+ */
 export function scanLinks(content: string): MarkdownLink[] {
   const links: MarkdownLink[] = [];
-  for (const m of content.matchAll(LINK_RE)) {
+  const text = maskCode(content);
+  for (const m of text.matchAll(LINK_RE)) {
     const href = (m[1] ?? '').trim();
     if (!href) continue;
-    const line = content.slice(0, m.index).split('\n').length;
+    const line = text.slice(0, m.index).split('\n').length;
     links.push({ href, line });
   }
   return links;
