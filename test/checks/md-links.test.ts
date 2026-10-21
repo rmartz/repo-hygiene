@@ -18,6 +18,15 @@ describe('scanLinks', () => {
   it('returns nothing for prose without links', () => {
     expect(scanLinks('just some text\nwith no links')).toEqual([]);
   });
+
+  it('skips link syntax inside inline code spans', () => {
+    expect(scanLinks('embed `![](url)` and ``[a](b) ` c`` here')).toEqual([]);
+  });
+
+  it('skips link syntax inside fenced code blocks, keeping later line numbers', () => {
+    const content = '```md\n[a](b)\n```\n\n[real](./c.md)\n';
+    expect(scanLinks(content)).toEqual([{ href: './c.md', line: 5 }]);
+  });
 });
 
 describe('resolveRel', () => {
