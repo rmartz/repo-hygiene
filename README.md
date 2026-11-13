@@ -86,7 +86,7 @@ the [consumer guide](docs/consuming.md) for the full reference.
 
 ## Requirements
 
-- Node.js >= 20.11
+- Node.js >= 26
 - pnpm 9 (pinned via `packageManager`)
 
 Consuming repos need neither — the Action runs the published CLI on a
