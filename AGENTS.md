@@ -47,9 +47,9 @@ file as off-limits just because bootstrap once seeded it.
   `rmartz/pr-policy-action` on this repo's PRs, pinned and bumped by Dependabot.
   It passes `skip-uat: true`: the repo skips UAT by choice (the CLI it ships is
   user-facing, so this is a decision, not a claim there's nothing to test).
-- **PR lifecycle labels:** [pr-lifecycle.yml](.github/workflows/pr-lifecycle.yml)
-  runs `rmartz/pr-lifecycle-action` without arming, with `uat: 'off'` matching `skip-uat`: it keeps each PR's lifecycle labels current, marks every PR `no UAT needed`, and posts the `pr-lifecycle/sign-off` status (as the `rmartz-pr-lifecycle` App, which the `pr-policy` caller trusts). `bot-automerge.yml` still does the
-  merging.
+- **Merging:** each PR is driven to merge by the session that opened it (no
+  lifecycle-label automation); `bot-automerge.yml` arms auto-merge on eligible
+  bot PRs.
 - `ai-ensure-labels` / `ai-verify-squash-setting` are still useful one-shot
   helpers to (re)seed the label roster or confirm the squash setting, but this
   repo owns its `.github/` config going forward.
