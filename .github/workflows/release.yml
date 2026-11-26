@@ -17,13 +17,15 @@ name: Release
 # Renaming this file breaks publishing until the trusted publisher on npmjs is
 # updated to match. Provenance attestations are generated automatically.
 #
-# OIDC publishing needs npm >= 11.5.1, so both jobs run on Node 24 (npm 11).
+# OIDC publishing needs npm >= 11.5.1, so both jobs run on Node 26 (npm 11), the
+# same major as package.json's engines floor and @types/node.
 # @semantic-release/npm bundles npm 11 but runs `npm` with preferLocal, and pnpm
 # does not link that bundled copy into node_modules/.bin — so the publish uses
 # the runner's npm. On Node 22 (npm 10) it fails with ENEEDAUTH after the tag and
 # GitHub Release were already created, which is how v7.1.0 was tagged unpublished.
-# The shared release workflow defaults to Node 24 and, because this workflow
-# grants `id-token: write`, fails before tagging if npm is older.
+# The shared release workflow is passed node-version 26.x (its default is 24.x)
+# and, because this workflow grants `id-token: write`, fails before tagging if
+# npm is older.
 #
 # `workflow_dispatch` with a `tag` backfills such a tag: it builds that tag's
 # tree and publishes it under the tag's version. It is part of this file (not a
@@ -58,6 +60,7 @@ jobs:
     if: github.event_name == 'push'
     uses: rmartz/semantic-release-ci/.github/workflows/semantic-release.yml@7ef55f7edb704ee85fc82bf6a23d317b80d42cc8 # v2.1.0
     with:
+      node-version: 26.x
       # Build dist/ before @semantic-release/npm packs it; the shared workflow
       # installs this repo's dependencies (pnpm, frozen lockfile) first.
       build-command: pnpm build
@@ -87,7 +90,7 @@ jobs:
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: '26'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build

@@ -22,3 +22,7 @@ permissions:
 jobs:
   release-check:
     uses: rmartz/semantic-release-ci/.github/workflows/release-check.yml@7ef55f7edb704ee85fc82bf6a23d317b80d42cc8 # v2.1.0
+    with:
+      # Same Node major as release.yml's release job, so the check tests the
+      # runtime that publishes.
+      node-version: 26.x

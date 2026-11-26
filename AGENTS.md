@@ -125,7 +125,9 @@ opinionated rule a laxer setting, and make a network-dependent check fail safe
   `release.yml` filename, so there is no `NPM_TOKEN`; renaming that workflow
   breaks publishing until the trusted publisher on npmjs is updated. See #45 for
   the split from release-please and why. OIDC publishing needs npm >= 11.5.1, so
-  the release runs on **Node 24** — keep it there. The publish runs in the
+  the release runs on the `engines` major (**Node 26** today, npm 11), the same
+  major as `@types/node` and CI — and never below Node 24, the npm 11 floor. The
+  publish runs in the
   `prepare` step (`@semantic-release/npm` with `npmPublish: false` writes the
   version, then `@semantic-release/exec` runs `npm publish`), **before**
   semantic-release pushes the tag, so a failed publish stops the release with no
@@ -135,9 +137,10 @@ opinionated rule a laxer setting, and make a network-dependent check fail safe
 - **The release toolchain lives in
   [semantic-release-ci](https://github.com/rmartz/semantic-release-ci).**
   `release.yml`'s release job calls its shared workflow (pinned by SHA, bumped by
-  Dependabot), which runs on Node 24 and fails before tagging if npm is too old
+  Dependabot), passing `node-version: 26.x`; it fails before tagging if npm is too old
   for trusted publishing. The required `release-check / release-check` check
-  proves `.releaserc.json` still works with that toolchain on every PR. The
+  proves `.releaserc.json` still works with that toolchain, on the same Node
+  major, on every PR. The
   toolchain (`semantic-release`, its plugins, the changelog preset) is **not** in
   this repo's `package.json` — never add it back, and never reintroduce a
   `semantic-release --dry-run` job as a release guard: on a PR it exits before
